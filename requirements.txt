@@ -1,0 +1,25 @@
+# Web Scraping & HTML Parsing
+requests==2.31.0
+selenium==4.17.2
+webdriver-manager==4.0.1
+beautifulsoup4==4.12.3
+fake-useragent==1.4.0
+
+# NLP & Machine Learning
+spacy==3.7.2
+gliner==0.1.7
+transformers>=4.38.2
+torch==2.2.0
+
+# LLM Integration
+google-genai==0.3.0
+pydantic==2.6.1
+
+# Database & Graph
+psycopg2-binary==2.9.9
+networkx==3.2.1
+
+# Analytics & Topic Modeling
+bertopic==0.16.0
+umap-learn==0.5.5
+hdbscan==0.8.33
