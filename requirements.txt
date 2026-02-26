@@ -14,6 +14,8 @@ torch==2.2.0
 # LLM Integration
 google-genai==0.3.0
 pydantic==2.6.1
+groq>=0.4.0
+instructor>=1.0.0
 
 # Database & Graph
 psycopg2-binary==2.9.9
