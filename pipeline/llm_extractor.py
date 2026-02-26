@@ -36,8 +36,14 @@ class LLMExtractor:
         2. Normalize vessel names using this provided reference list of known vessels in the article (if applicable): [{vessels_context}]. Only use vessel names from this list if you are referring to the same ship.
         3. Determine the 'incident_type'. An initial automated pass suggested it might be: "{zero_shot_category}". Validate or correct this.
         4. If a detail is not explicitly mentioned in the text, return 'null' for that field. Do not infer or invent details.
-        5. The 'summary' must be a concise, 1-2 sentence executive summary of the event.
         
+        SEMANTIC ENRICHMENT RULES (Requirement 4):
+        - `executive_summary`: Write a highly professional, 150-word intelligence brief summarizing the entirety of the article context.
+        - `risk_level`: CRITICAL (loss of life, massive spill, war zone), HIGH (major port blockage, ship loss), MEDIUM (delays, minor damage), LOW (routine, resolved).
+        - `impact_scope`: GLOBAL (affects global supply chains/prices), REGIONAL (affects a specific sea/coastline), LOCAL (affects only the immediate port/vessel).
+        - `strategic_relevance_tags`: Generate 2-4 short tags like 'Supply Chain Shock', 'Sanctions Evasion', 'Piracy Trend', or 'Environmental Fines'.
+        - Boolean Flags: Set to true if the article contains state actors (geopolitics), navies/military (defense), or OFAC/sanctions/smuggling (sanction sensitive).
+
         ARTICLE TEXT:
         {text}
         """

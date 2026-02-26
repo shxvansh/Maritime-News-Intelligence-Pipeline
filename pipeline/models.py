@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from enum import Enum
 
 class Location(BaseModel):
     port: Optional[str] = Field(None, description="The name of the port where the incident occurred, if any.")
@@ -16,8 +17,30 @@ class MaritimeEvent(BaseModel):
     incident_type: str = Field(..., description="The classification of the incident (e.g., Collision, Piracy, Sanctions).")
     casualties: str = Field(..., description="The number or description of casualties or injuries. '0' if none reported.")
     cargo_type: Optional[str] = Field(None, description="Type of cargo involved, if mentioned.")
-    summary: str = Field(..., description="A concise, 1-2 sentence executive summary of the event.")
+    summary: str = Field(..., description="A concise, 1-2 sentence summary of this specific event.") # Updated prompt
     confidence_score: float = Field(..., description="Confidence score of the extraction from 0.0 to 1.0.")
 
+# --- NEW: Requirement 4 (LLM Semantic Enrichment) ---
+class RiskLevel(str, Enum):
+    LOW = "Low"
+    MEDIUM = "Medium"
+    HIGH = "High"
+    CRITICAL = "Critical"
+
+class ImpactScope(str, Enum):
+    LOCAL = "Local"
+    REGIONAL = "Regional"
+    GLOBAL = "Global"
+
+class ArticleEnrichment(BaseModel):
+    executive_summary: str = Field(..., description="A 150-word executive summary of the entire article context.")
+    risk_level: RiskLevel = Field(..., description="Overall risk level posed by the events in the article.")
+    impact_scope: ImpactScope = Field(..., description="The geographical footprint of the disruption.")
+    strategic_relevance_tags: List[str] = Field(default_factory=list, description="Short categorical tags (e.g., Supply Chain Delay, Market Shock).")
+    is_geopolitical: bool = Field(..., description="Does this involve international politics, state actors, or contested waters?")
+    has_defense_implications: bool = Field(..., description="Are militaries, navies, or security forces involved?")
+    is_sanction_sensitive: bool = Field(..., description="Does this involve OFAC, EU, or UN sanctions, dark fleets, or illicit trade?")
+
 class EventList(BaseModel):
+    enrichment: ArticleEnrichment = Field(..., description="Semantic intelligence and analysis covering the entire article.")
     events: List[MaritimeEvent] = Field(default_factory=list, description="A list of maritime events extracted from the article.")

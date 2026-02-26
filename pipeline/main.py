@@ -113,14 +113,24 @@ def main():
         if extracted_events:
             print("✅ LLM Extraction successful!")
             try:
-                # Create the core Article record
+                # Extract the semantic enrichment from the Pydantic dictionary
+                enrichment = extracted_events.get("enrichment", {})
+                
+                # Create the core Article record enriched with LLM intelligence
                 new_article = Article(
                     id=article_hash,
                     original_id=article.get("id"),
                     title=article.get("title", "Unknown Title"),
                     nlp_classification=classification['label'],
                     nlp_confidence=classification['score'],
-                    processing_time=elapsed
+                    processing_time=elapsed,
+                    executive_summary=enrichment.get("executive_summary"),
+                    risk_level=enrichment.get("risk_level"),
+                    impact_scope=enrichment.get("impact_scope"),
+                    strategic_relevance_tags=enrichment.get("strategic_relevance_tags", []),
+                    is_geopolitical=enrichment.get("is_geopolitical", False),
+                    has_defense_implications=enrichment.get("has_defense_implications", False),
+                    is_sanction_sensitive=enrichment.get("is_sanction_sensitive", False)
                 )
                 db.add(new_article)
                 
