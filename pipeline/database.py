@@ -18,10 +18,12 @@ class Article(Base):
 
     id = Column(String, primary_key=True, index=True) # Article Hash 
     title = Column(String, nullable=False)
+    url = Column(String, nullable=True)
     original_id = Column(String, unique=True, index=True) 
     nlp_classification = Column(String)
     nlp_confidence = Column(Float)
     processing_time = Column(Float)
+    named_entities = Column(JSON, default=dict) # Store GLiNER entity extractions
     
     # Enrichment fields
     executive_summary = Column(String, nullable=True)

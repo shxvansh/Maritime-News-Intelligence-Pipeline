@@ -206,3 +206,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project Specific
+qdrant_storage/
+theme_dashboard.html
+knowledge_graph.png
+latest_articles.json
+processed_test_results.json
+postgres_data/

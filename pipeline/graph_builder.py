@@ -1,6 +1,9 @@
 import json
 import networkx as nx
-import matplotlib.pyplot as plt
+import os
+from pyvis.network import Network
+import json
+import networkx as nx
 import os
 
 def build_knowledge_graph(json_filepath):
@@ -89,49 +92,44 @@ def build_knowledge_graph(json_filepath):
         
         print(f"{i+1}. ({node_a} [{type_a}]) ➔ {relation} ➔ ({node_b} [{type_b}])")
         
-    # --- VISUALIZATION MATPLOTLIB ---
-    plt.figure(figsize=(14, 10))
+    # --- VISUALIZATION PYVIS ---
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_html = os.path.join(base_dir, "knowledge_graph.html")
     
-    # Assign specific colors to different node types to make it look professional
-    color_map = []
+    # Map colors to nodes in the NetworkX graph itself so PyVis can read them
     for node, data in G.nodes(data=True):
         node_type = data.get("type", "Unknown")
         if node_type == "Vessel":
-            color_map.append("lightblue")
+            data["color"] = "#add8e6"  # lightblue
         elif node_type == "Incident":
-            color_map.append("salmon")
+            data["color"] = "#fa8072"  # salmon
         elif node_type == "Organization":
-            color_map.append("lightgreen")
+            data["color"] = "#90ee90"  # lightgreen
         elif node_type in ["Port", "Country"]:
-            color_map.append("orange")
+            data["color"] = "#ffa500"  # orange
         else:
-            color_map.append("lightgray")
+            data["color"] = "#d3d3d3"  # lightgray
             
-    # Spring layout naturally clusters connected nodes together
-    pos = nx.spring_layout(G, k=0.5, seed=42)
+        data["title"] = f"{node}\nType: {node_type}" # Hover tooltip
+            
+    # Map edge labels so they show up in PyVis
+    for u, v, data in G.edges(data=True):
+        data["title"] = data.get("relation", "LINKED_TO")
+        data["label"] = data.get("relation", "LINKED_TO")
+
+    # Initialize PyVis network (matching Streamlit dark theme)
+    # Using directed=False because the relations aren't strictly directional, but we could use True for arrows!
+    net = Network(height="750px", width="100%", bgcolor="#161b22", font_color="#c9d1d9", directed=True)
     
-    # Draw the Nodes and Edges
-    nx.draw(
-        G, pos, 
-        with_labels=True, 
-        node_color=color_map, 
-        node_size=1800, 
-        font_size=8, 
-        font_weight="bold", 
-        edge_color="gray",
-        alpha=0.9
-    )
+    # Load the NetworkX graph
+    net.from_nx(G)
     
-    # Draw the Text Labels (Verbs) on the Lines itself
-    edge_labels = nx.get_edge_attributes(G, 'relation')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=6, font_color="blue")
+    # Tweak physics layout to prevent excessive overlap
+    net.repulsion(node_distance=150, central_gravity=0.1, spring_length=150, spring_strength=0.05, damping=0.95)
     
-    plt.title("Maritime Intelligence Knowledge Graph", fontsize=16, fontweight='bold')
-    plt.axis("off") 
-    
-    output_img = os.path.join(base_dir, "knowledge_graph.png")
-    plt.savefig(output_img, format="png", dpi=300, bbox_inches='tight')
-    print(f"\n🚀 Graph visualization saved successfully to: {output_img}")
+    # Save Graph
+    net.save_graph(output_html)
+    print(f"\n Interactive 3D graph saved successfully to: {output_html}")
 
 if __name__ == "__main__":
     # We will point it dynamically to the processed_test_results.json 
