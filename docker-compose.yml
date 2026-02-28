@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # The Database
+  db:
+    image: postgres:15-alpine
+    container_name: maritime_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-maritime_intel}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-maritime_intel}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # The Intelligence Pipeline
+  pipeline:
+    build: .
+    container_name: maritime_pipeline
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Inject the API Key and DB URL here; if they don't exist in .env fallback dynamically to the defaults
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secret}@db:5432/${POSTGRES_DB:-maritime_intel}
+    volumes:
+      # Mount the JSON files to safely pass scrape inputs / extract outputs without copying them rigidly into the image
+      - ./latest_articles.json:/app/latest_articles.json
+      - ./processed_test_results.json:/app/processed_test_results.json
+    command: python pipeline/main.py
+
+volumes:
+  # This makes sure Postgres data persists if the container is destroyed
+  postgres_data:
