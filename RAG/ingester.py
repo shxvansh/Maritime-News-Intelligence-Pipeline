@@ -8,6 +8,7 @@ import os
 import sys
 import uuid
 import re
+import hashlib
 from collections import Counter
 
 # Ensure the root project path is available for imports
@@ -37,12 +38,13 @@ def compute_sparse_vector(text: str) -> SparseVector:
     
     token_counts = Counter(tokens)
     
-    # Use hash of each token as the sparse index (Qdrant expects integer indices)
+    # Use deterministic hash of each token as the sparse index (Qdrant expects integer indices)
     indices = []
     values = []
     for token, count in token_counts.items():
-        # Map token to a stable integer index via hash (mod large prime for compactness)
-        token_index = abs(hash(token)) % 2_000_000
+        # Map token to a stable integer index via deterministic hash (avoid Python's random session hash seed)
+        hash_digest = hashlib.md5(token.encode("utf-8")).hexdigest()
+        token_index = int(hash_digest, 16) % 2_000_000
         tf = count / len(tokens)  # Term Frequency normalization
         indices.append(token_index)
         values.append(float(tf))

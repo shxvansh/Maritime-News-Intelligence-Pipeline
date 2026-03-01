@@ -8,6 +8,7 @@ import os
 import sys
 import re
 import argparse
+import hashlib
 from collections import Counter
 from dotenv import load_dotenv
 
@@ -45,7 +46,8 @@ def compute_sparse_vector(text: str) -> SparseVector:
     indices = []
     values = []
     for token, count in token_counts.items():
-        token_index = abs(hash(token)) % 2_000_000
+        hash_digest = hashlib.md5(token.encode("utf-8")).hexdigest()
+        token_index = int(hash_digest, 16) % 2_000_000
         tf = count / len(tokens)
         indices.append(token_index)
         values.append(float(tf))
