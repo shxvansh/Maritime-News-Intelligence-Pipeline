@@ -15,14 +15,20 @@ matplotlib.use('Agg')  # Force thread-safe backend before any routes or modeling
 # Ensure root project path is importable
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 from contextlib import asynccontextmanager
+
+limiter = Limiter(key_func=get_remote_address)
 
 # Global dictionary to hold our preloaded models
 ml_models = {}
@@ -39,8 +45,12 @@ async def lifespan(app: FastAPI):
     ml_models["nlp_engine"] = NLPEngine()
     ml_models["llm_extractor"] = LLMExtractor()
     
-    print("⏳ Loading RAG Vectors (all-MiniLM-L6-v2)...")
-    ml_models["sentence_transformer"] = SentenceTransformer("all-MiniLM-L6-v2")
+    print("⏳ Loading RAG Vectors (BAAI/bge-large-en-v1.5)...")
+    ml_models["sentence_transformer"] = SentenceTransformer("BAAI/bge-large-en-v1.5")
+    
+    print("⏳ Loading Security Manager (Presidio PII + Guardrails)...")
+    from RAG.security import SecurityManager
+    ml_models["security_manager"] = SecurityManager()
     
     print("✅ All models successfully preloaded into memory!")
     yield
@@ -53,6 +63,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -68,6 +80,12 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 class ChatRequest(BaseModel):
     question: str
+
+
+class EvalRequest(BaseModel):
+    question: str
+    context: str
+    answer: str
 
 
 class PipelineRunRequest(BaseModel):
@@ -174,6 +192,7 @@ def run_extraction_pipeline(req: PipelineRunRequest):
                     original_id=article.get("id"),
                     title=article.get("title", "Unknown"),
                     url=article.get("url", ""),
+                    content=raw_text,
                     nlp_classification=classification["label"],
                     nlp_confidence=classification["score"],
                     processing_time=0,
@@ -202,6 +221,7 @@ def run_extraction_pipeline(req: PipelineRunRequest):
                     original_id=article.get("id"),
                     title=article.get("title", "Unknown"),
                     url=article.get("source_url", ""),
+                    content=raw_text,
                     nlp_classification=classification["label"],
                     nlp_confidence=classification["score"],
                     processing_time=elapsed,
@@ -339,33 +359,74 @@ def run_topic_model():
 
 
 # ---------------------------------------------------------------------------
-# 5. RAG CHATBOT ENDPOINT
+# 5. SECURE RAG CHATBOT ENDPOINT (Graph-Augmented Hybrid Search + Guardrails)
 # ---------------------------------------------------------------------------
 @app.post("/rag/chat")
-def rag_chat(req: ChatRequest):
-    """Answers a user question using the RAG pipeline (Qdrant + Groq)."""
+@limiter.limit("10/minute")
+def rag_chat(req: ChatRequest, request: Request):
+    """Answers a user question using Graph-Augmented Hybrid RAG with Defense-Grade Security."""
+    import re
+    from collections import Counter
     from RAG.qdrant_manager import QdrantManager
+    from qdrant_client.http.models import SparseVector
     from groq import Groq
 
-    model = ml_models["sentence_transformer"]
-    query_embedding = model.encode(req.question).tolist()
+    BGE_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 
+    model = ml_models["sentence_transformer"]
+    security = ml_models["security_manager"]
+
+    # --- SECURITY LAYER 1: Prompt Injection Guardrail ---
+    if security.check_prompt_injection(req.question):
+        print("🚨 Prompt Injection Detected! Rejecting query.")
+        raise HTTPException(status_code=403, detail="Security violation: Malicious prompt pattern detected.")
+
+    # Dense embedding with BGE instruct prefix
+    instructed_query = BGE_QUERY_INSTRUCTION + req.question
+    dense_vector = model.encode(instructed_query).tolist()
+
+    # Sparse vector (BM25-like) for keyword matching
+    tokens = re.findall(r'\b[a-z0-9]+\b', req.question.lower())
+    token_counts = Counter(tokens)
+    sparse_indices = [int(hashlib.md5(t.encode("utf-8")).hexdigest(), 16) % 2_000_000 for t in token_counts]
+    sparse_values = [float(c / len(tokens)) for c in token_counts.values()]
+    sparse_vector = SparseVector(indices=sparse_indices, values=sparse_values)
+
+    # Hybrid Search via Qdrant Cloud
     qdrant = QdrantManager()
-    search_results = qdrant.search(query_vector=query_embedding, limit=4)
+    search_results = qdrant.hybrid_search(
+        dense_vector=dense_vector,
+        sparse_vector=sparse_vector,
+        limit=5
+    )
 
     if not search_results:
         return {"answer": "No relevant information was found in the database.", "sources": []}
 
     context_blocks = []
     sources = []
-    for hit in search_results:
+    for idx, hit in enumerate(search_results):
         payload = hit.payload
         title = payload.get("title", "Unknown")
         text = payload.get("text", "")
-        context_blocks.append(f"[Source: {title}]\n{text}")
-        sources.append({"title": title, "score": round(hit.score, 3)})
+        graph_context = payload.get("graph_context", "")
+        risk_level = payload.get("risk_level", "Unknown")
 
+        block = f"[Source #{idx+1}: {title} | Risk: {risk_level}]"
+        if graph_context:
+            block += f"\n{graph_context}"
+        block += f"\n{text}"
+        context_blocks.append(block)
+        sources.append({
+            "title": title,
+            "score": round(hit.score, 3) if hit.score else 0,
+            "risk_level": risk_level,
+            "graph_context": graph_context
+        })
     full_context = "\n\n---\n\n".join(context_blocks)
+
+    # --- SECURITY LAYER 2: PII Data Sanitization ---
+    full_context = security.sanitize_pii(full_context)
 
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
@@ -374,10 +435,13 @@ def rag_chat(req: ChatRequest):
     client = Groq(api_key=api_key)
     prompt = f"""You are an expert Maritime Intelligence Analyst working for a defense organization.
 Use ONLY the following extracted intelligence reports to answer the analyst's question.
-If the answer cannot be determined from the provided context, state that clearly.
-Do not speculate or introduce external information.
+Each source includes structured entity context (Vessels, Incidents, Locations) extracted
+from a Knowledge Graph, followed by the relevant text passage.
 
-CONTEXT:
+If the answer cannot be determined from the provided context, state that clearly.
+Do not speculate or introduce external information. Be precise and cite the source numbers.
+
+INTELLIGENCE CONTEXT:
 {full_context}
 
 ANALYST QUESTION: {req.question}"""
@@ -389,7 +453,54 @@ ANALYST QUESTION: {req.question}"""
     )
 
     answer = response.choices[0].message.content
-    return {"answer": answer, "sources": sources}
+
+    # --- SECURITY LAYER 3: Output Grounding Check ---
+    if not security.check_grounding(answer, full_context):
+        print("🚨 Hallucination Detected! Rejecting response.")
+        return {
+            "answer": "⚠️ SECURITY ALERT: The generated intelligence report failed the confidence/grounding check. Returning no response to prevent hallucination.",
+            "sources": sources,
+            "context": full_context
+        }
+
+    return {"answer": answer, "sources": sources, "context": full_context}
+
+
+# ---------------------------------------------------------------------------
+# 5b. RAG EVALUATION ENDPOINT
+# ---------------------------------------------------------------------------
+@app.post("/rag/evaluate")
+def rag_evaluate(req: EvalRequest):
+    """Evaluates a RAG response for context relevance, faithfulness, and answer relevance."""
+    try:
+        from RAG.evaluator import RAGEvaluator
+        
+        # Load the evaluator WITHOUT initializing duplicate instances of SentenceTransformer or Qdrant
+        evaluator = RAGEvaluator(load_models=False)
+        
+        scores = evaluator.evaluate_triad(
+            question=req.question,
+            ground_truth="", # No ground truth during live inference
+            context=req.context,
+            answer=req.answer
+        )
+        return {"status": "success", "metrics": scores}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# 5c. RAG INGESTION ENDPOINT
+# ---------------------------------------------------------------------------
+@app.post("/rag/ingest")
+def rag_ingest():
+    """Triggers the Graph-Augmented Hybrid RAG ingestion from PostgreSQL to Qdrant Cloud."""
+    try:
+        from RAG.ingester import ingest_from_database
+        ingest_from_database()
+        return {"status": "success", "message": "RAG ingestion completed successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ---------------------------------------------------------------------------

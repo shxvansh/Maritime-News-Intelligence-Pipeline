@@ -276,16 +276,17 @@ if page == "Ingestion Control":
 
     st.markdown("---")
     st.markdown("#### Vector Database Ingestion")
-    st.markdown("Embed scraped articles and push vector representations into the Qdrant cluster for RAG operations.")
+    st.markdown("Embed scraped articles and push hybrid vectors (Dense 1024-D + Sparse BM25) into the Qdrant cluster for RAG operations.")
     if st.button("Ingest into Qdrant", width="stretch"):
-        with st.spinner("Embedding articles and upserting vectors..."):
+        with st.spinner("Embedding articles via Graph-Augmented Chunking and upserting vectors..."):
             try:
-                from RAG.ingester import ingest_articles
-                data_path = os.path.join(BASE_DIR, "latest_articles.json")
-                ingest_articles(data_path)
-                st.success("Vector ingestion complete.")
+                resp = requests.post(f"{API_BASE}/rag/ingest", timeout=300)
+                if resp.status_code == 200:
+                    st.success("Vector ingestion complete.")
+                else:
+                    st.error(f"Ingestion failed: {resp.text}")
             except Exception as e:
-                st.error(f"Ingestion failed: {e}")
+                st.error(f"Ingestion request failed: {e}")
 
 
 # ===========================================================================
@@ -412,50 +413,24 @@ elif page == "Intelligence Feed":
                 st.markdown("#### Executive Summary")
                 st.write(article.get("executive_summary", "No summary available."))
                 
-                # NER Entities Section
-                st.markdown("---")
-                st.markdown("#### Named Entity Recognition (NER)")
+                # Combined Event Details (incorporating NER where applicable)
+                specific_events = [ev for ev in events_data if (ev.get("article_title") and ev.get("article_title") == article.get("title")) or (ev.get("article_hash") and ev.get("article_hash") == article.get("id"))]
+                
+                # Fetch NER data for any potentially missing fields (like Persons)
                 named_entities_data = article.get("named_entities") or {}
                 named_entities = named_entities_data.get("entities", [])
-                
+                persons = set()
                 if named_entities:
-                    vessels, ports, orgs, countries, persons, incidents, dates = set(), set(), set(), set(), set(), set(), set()
-                    
                     for ent in named_entities:
                         label = ent.get("label", "").upper()
                         text = ent.get("text", "")
-                        if label in ["VESSEL", "VESSEL NAME", "SHIP"]: vessels.add(text)
-                        elif label == "PORT": ports.add(text)
-                        elif label == "ORGANIZATION": orgs.add(text)
-                        elif label in ["LOCATION", "COUNTRY"]: countries.add(text)
-                        elif label == "PERSON": persons.add(text)
-                        elif label == "INCIDENT TYPE": incidents.add(text)
-                        elif label == "DATE": dates.add(text)
-                    
-                    c1, c2, c3 = st.columns(3)
-                    with c1:
-                        st.markdown("**Vessel Names**")
-                        st.write(", ".join(vessels) if vessels else "None detected")
-                        st.markdown("**Organizations**")
-                        st.write(", ".join(orgs) if orgs else "None detected")
-                    with c2:
-                        st.markdown("**Ports**")
-                        st.write(", ".join(ports) if ports else "None detected")
-                        st.markdown("**Countries**")
-                        st.write(", ".join(countries) if countries else "None detected")
-                    with c3:
-                        st.markdown("**Incident Types**")
-                        st.write(", ".join(incidents) if incidents else "None detected")
-                        st.markdown("**Dates**")
-                        st.write(", ".join(dates) if dates else "None detected")
-                else:
-                    st.info("No named entities were extracted for this report.")
+                        if label == "PERSON": persons.add(text)
 
-                # Events Structured Data
-                specific_events = [ev for ev in events_data if (ev.get("article_title") and ev.get("article_title") == article.get("title")) or (ev.get("article_hash") and ev.get("article_hash") == article.get("id"))]
-                if specific_events:
+                if specific_events or persons:
                     st.markdown("---")
-                    st.markdown("#### Extracted Event Details")
+                    st.markdown("#### Event Details")
+
+                if specific_events:
                     for ev in specific_events:
                         st.markdown(f'<div class="intel-card" style="border-left: 4px solid #1f6feb;">', unsafe_allow_html=True)
                         st.markdown(f"**Event ID:** `{ev.get('event_id', 'Unknown')}`")
@@ -472,10 +447,16 @@ elif page == "Intelligence Feed":
                             orgs_list = ev.get('organizations_involved', [])
                             st.markdown(f"**Organizations:** {', '.join(orgs_list) if orgs_list else 'N/A'}")
                             st.markdown(f"**Casualties:** {ev.get('casualties', 'N/A')} | **Cargo Type:** {ev.get('cargo_type', 'N/A')}")
+                            if persons:
+                                st.markdown(f"**Persons Involved:** {', '.join(persons)}")
                         
                         st.markdown(f"**Summary:** {ev.get('summary', '')}")
                         st.markdown(f"<small>Confidence Score: {ev.get('confidence_score', 0)}</small>", unsafe_allow_html=True)
                         st.markdown("</div>", unsafe_allow_html=True)
+                elif persons:
+                    st.markdown(f'<div class="intel-card" style="border-left: 4px solid #1f6feb;">', unsafe_allow_html=True)
+                    st.markdown(f"**Persons Involved:** {', '.join(persons)}")
+                    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ===========================================================================
@@ -546,38 +527,120 @@ elif page == "RAG Query Interface":
     # Chat history
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
-    
-    # Display chat history
-    for msg in st.session_state.chat_history:
-        if msg["role"] == "user":
-            st.markdown(f'<div class="chat-msg-user"><strong>ANALYST:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="chat-msg-ai"><strong>INTELLIGENCE SYSTEM:</strong><br>{msg["content"]}</div>', unsafe_allow_html=True)
-            if msg.get("sources"):
-                for src in msg["sources"]:
-                    st.markdown(f'<p style="font-size:11px; color:#8b949e; margin-left:14px;">Source: {src["title"]} (Relevance: {src["score"]})</p>', unsafe_allow_html=True)
-    
-    # Input
-    question = st.text_input("Enter your query", placeholder="e.g., Which vessels were detained in the past month?", label_visibility="collapsed")
-    
-    if st.button("Submit Query", width="stretch") and question:
-        st.session_state.chat_history.append({"role": "user", "content": question})
         
-        with st.spinner("Retrieving context and generating response..."):
-            try:
-                resp = requests.post(f"{API_BASE}/rag/chat", json={"question": question}, timeout=60)
-                data = resp.json()
-                answer = data.get("answer", "No response generated.")
-                sources = data.get("sources", [])
-                st.session_state.chat_history.append({
-                    "role": "assistant",
-                    "content": answer,
-                    "sources": sources
-                })
-                st.rerun()
-            except Exception as e:
-                st.error(f"Query failed: {e}")
+    if "pending_evaluation" not in st.session_state:
+        st.session_state.pending_evaluation = None
+
+    col1, col2 = st.columns([7, 3])
     
-    if st.button("Clear History"):
-        st.session_state.chat_history = []
-        st.rerun()
+    with col1:
+        st.markdown("#### Analyst Chat")
+        
+        # Display chat history
+        for msg in st.session_state.chat_history:
+            if msg["role"] == "user":
+                st.markdown(f'<div class="chat-msg-user"><strong>ANALYST:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div class="chat-msg-ai"><strong>INTELLIGENCE SYSTEM:</strong><br>{msg["content"]}</div>', unsafe_allow_html=True)
+                if msg.get("sources"):
+                    for src in msg["sources"]:
+                        st.markdown(f'<p style="font-size:11px; color:#8b949e; margin-left:14px;">Source: {src["title"]} (Relevance: {src["score"]})</p>', unsafe_allow_html=True)
+        
+        # Input
+        question = st.text_input("Enter your query", placeholder="e.g., Which vessels were detained in the past month?", label_visibility="collapsed")
+        
+        c1, c2 = st.columns([1,1])
+        with c1:
+            submit_btn = st.button("Submit Query", width="stretch")
+        with c2:
+            clear_btn = st.button("Clear History", width="stretch")
+            
+        if clear_btn:
+            st.session_state.chat_history = []
+            st.session_state.pending_evaluation = None
+            st.rerun()
+            
+        if submit_btn and question:
+            st.session_state.chat_history.append({"role": "user", "content": question})
+            st.session_state.pending_evaluation = None
+            
+            with st.spinner("Retrieving context and generating response..."):
+                try:
+                    resp = requests.post(f"{API_BASE}/rag/chat", json={"question": question}, timeout=60)
+                    data = resp.json()
+                    answer = data.get("answer", "No response generated.")
+                    sources = data.get("sources", [])
+                    st.session_state.chat_history.append({
+                        "role": "assistant",
+                        "content": answer,
+                        "sources": sources,
+                        "metrics": None
+                    })
+                    st.session_state.pending_evaluation = {
+                        "question": question,
+                        "answer": answer,
+                        "context": data.get("context", ""),
+                        "index": len(st.session_state.chat_history) - 1
+                    }
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Query failed: {e}")
+
+    with col2:
+        st.markdown("#### Reliability Metrics")
+        st.markdown("<p style='font-size: 13px; color:#8b949e'>Live LLM-as-a-Judge Evaluation</p>", unsafe_allow_html=True)
+        
+        if st.session_state.pending_evaluation:
+            eval_data = st.session_state.pending_evaluation
+            with st.spinner("Calculating RAG Triad Metrics..."):
+                try:
+                    res = requests.post(f"{API_BASE}/rag/evaluate", json={
+                        "question": eval_data["question"],
+                        "answer": eval_data["answer"],
+                        "context": eval_data["context"]
+                    }, timeout=60)
+                    metrics = res.json().get("metrics", {})
+                    st.session_state.chat_history[eval_data["index"]]["metrics"] = metrics
+                    st.session_state.pending_evaluation = None
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to calculate metrics: {e}")
+                    st.session_state.pending_evaluation = None
+                    
+        # Display the metrics of the LAST assistant message
+        last_metrics = None
+        for msg in reversed(st.session_state.chat_history):
+            if msg["role"] == "assistant" and msg.get("metrics"):
+                last_metrics = msg["metrics"]
+                break
+                
+        if last_metrics:
+            cr = last_metrics.get("Context Relevance", 0)
+            fa = last_metrics.get("Faithfulness", 0)
+            ar = last_metrics.get("Answer Relevance", 0)
+            
+            def get_color(score):
+                if score >= 0.8: return "#3fb950"
+                if score >= 0.5: return "#d4a05a"
+                return "#da3633"
+
+            st.markdown(f'''
+            <div class="intel-card" style="border-top: 3px solid {get_color(cr)}">
+                <h4 style="margin:0; font-size:14px;">Context Relevance</h4>
+                <p style="margin:5px 0 0 0; font-size:24px; font-weight:bold; color:{get_color(cr)}">{cr:.0%}</p>
+                <p style="margin:0; font-size:11px;">Retrieval Quality</p>
+            </div>
+            <div class="intel-card" style="border-top: 3px solid {get_color(fa)}">
+                <h4 style="margin:0; font-size:14px;">Faithfulness</h4>
+                <p style="margin:5px 0 0 0; font-size:24px; font-weight:bold; color:{get_color(fa)}">{fa:.0%}</p>
+                <p style="margin:0; font-size:11px;">Hallucination Guard</p>
+            </div>
+            <div class="intel-card" style="border-top: 3px solid {get_color(ar)}">
+                <h4 style="margin:0; font-size:14px;">Answer Relevance</h4>
+                <p style="margin:5px 0 0 0; font-size:24px; font-weight:bold; color:{get_color(ar)}">{ar:.0%}</p>
+                <p style="margin:0; font-size:11px;">Prompt Adherence</p>
+            </div>
+            ''', unsafe_allow_html=True)
+        else:
+            if not st.session_state.pending_evaluation:
+                st.info("Metrics will appear here after your query.")

@@ -87,6 +87,7 @@ def main():
                     id=article_hash,
                     original_id=article.get("id"),
                     title=article.get("title", "Unknown Title"),
+                    content=raw_text,
                     nlp_classification=classification['label'],
                     nlp_confidence=classification['score'],
                     processing_time=time.time() - start_time
@@ -121,6 +122,7 @@ def main():
                     id=article_hash,
                     original_id=article.get("id"),
                     title=article.get("title", "Unknown Title"),
+                    content=raw_text,
                     nlp_classification=classification['label'],
                     nlp_confidence=classification['score'],
                     processing_time=elapsed,

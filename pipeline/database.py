@@ -34,6 +34,10 @@ class Article(Base):
     has_defense_implications = Column(Boolean, default=False)
     is_sanction_sensitive = Column(Boolean, default=False)
     
+    # RAG Tracking
+    content = Column(String, nullable=True)  # Raw article text for RAG chunking
+    is_embedded = Column(Boolean, default=False)  # Tracks if article has been embedded into Qdrant
+    
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class MaritimeEvent(Base):

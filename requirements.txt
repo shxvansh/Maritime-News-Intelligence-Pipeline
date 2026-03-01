@@ -30,11 +30,17 @@ matplotlib>=3.7.0
 scipy>=1.11.0
 
 # RAG & Vector Database
-qdrant-client>=1.7.0
+qdrant-client>=1.12.0
 sentence-transformers>=2.2.2
+sqlalchemy>=2.0.0
 
 # API & Dashboard
 fastapi>=0.109.0
 uvicorn>=0.27.0
 streamlit>=1.31.0
 python-dotenv>=1.0.0
+
+# Security & Guardrails
+presidio-analyzer>=2.2.35
+presidio-anonymizer>=2.2.35
+slowapi>=0.1.9
