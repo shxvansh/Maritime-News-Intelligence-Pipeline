@@ -1,6 +1,6 @@
 import os
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, JSON, Float, ForeignKey, Boolean
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -40,6 +40,9 @@ class Article(Base):
     is_embedded = Column(Boolean, default=False)  # Tracks if article has been embedded into Qdrant
     
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    events = relationship("MaritimeEvent", backref="article")
 
 class MaritimeEvent(Base):
     __tablename__ = "maritime_events"

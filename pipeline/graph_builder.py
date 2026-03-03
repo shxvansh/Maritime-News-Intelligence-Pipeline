@@ -2,38 +2,50 @@ import json
 import networkx as nx
 import os
 from pyvis.network import Network
-import json
-import networkx as nx
-import os
 
-def build_knowledge_graph(json_filepath):
+def build_knowledge_graph(articles):
+    """
+    Constructs a knowledge graph from a list of articles (either dicts or ORM objects).
+    """
     print("building knowledge graph...")
     # Create an empty graph canvas
     G = nx.Graph()
     
-    if not os.path.exists(json_filepath):
-        print(f"Error: Could not find {json_filepath}.")
-        print("make sure you run the pipeline first to generate the structured data.")
+    if not articles:
+        print("Warning: No articles provided for graph construction.")
         return
         
-    with open(json_filepath, 'r', encoding='utf-8') as f:
-        articles = json.load(f)
-        
-    print(f"Loaded {len(articles)} processed articles.\n")
+    print(f"Processing {len(articles)} articles for graph extraction.\n")
     
     for article in articles:
-        # Safely extract the structured events
-        events = article.get("structured_events", {}).get("events", [])
+        # Support both dictionary (JSON fallback) and SQLAlchemy model objects
+        if hasattr(article, '__table__'):
+            # It's an ORM object (database.Article)
+            events = getattr(article, 'events', [])
+        else:
+            # It's a dict (JSON fallback)
+            events = article.get("structured_events", {}).get("events", [])
+            # Also check for 'llm_structured_output' which is used in some places
+            if not events:
+                events = article.get("llm_structured_output", {}).get("events", [])
         
         for event in events:
-            # Extract components for Nodes
-            incident = event.get("incident_type")
-            vessels = event.get("vessels_involved", [])
-            orgs = event.get("organizations_involved", [])
+            # Support both dict and ORM object for the event itself
+            is_orm_event = hasattr(event, '__table__')
             
-            location = event.get("location", {})
-            port = location.get("port") if isinstance(location, dict) else None
-            country = location.get("country") if isinstance(location, dict) else None
+            # Extract components for Nodes
+            incident = getattr(event, "incident_type", None) if is_orm_event else event.get("incident_type")
+            vessels = getattr(event, "vessels_involved", []) if is_orm_event else event.get("vessels_involved", [])
+            orgs = getattr(event, "organizations_involved", []) if is_orm_event else event.get("organizations_involved", [])
+            
+            location = getattr(event, "location", {}) if is_orm_event else event.get("location", {})
+            # Special case for ORM which has flat attributes for port/country
+            if is_orm_event:
+                port = getattr(event, "port", None)
+                country = getattr(event, "country", None)
+            else:
+                port = location.get("port") if isinstance(location, dict) else None
+                country = location.get("country") if isinstance(location, dict) else None
             
             # --- NODE CREATION & EDGE LINKING ---
             
@@ -132,9 +144,9 @@ def build_knowledge_graph(json_filepath):
     print(f"\n Interactive 3D graph saved successfully to: {output_html}")
 
 if __name__ == "__main__":
-    # We will point it dynamically to the processed_test_results.json 
-    # located at the root of your project directory
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    json_path = os.path.join(base_dir, "processed_test_results.json")
-    
-    build_knowledge_graph(json_path)
+    # Point to the database to fetch articles for the graph
+    from pipeline.database import SessionLocal, Article
+    db = SessionLocal()
+    articles = db.query(Article).all()
+    build_knowledge_graph(articles)
+    db.close()

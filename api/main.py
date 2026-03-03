@@ -340,14 +340,18 @@ def get_events():
 
 # 4. ANALYTICS ENDPOINTS
 @app.post("/analytics/knowledge-graph")
-def build_knowledge_graph():
-    """Triggers knowledge graph generation and returns the file path."""
+def build_knowledge_graph_endpoint():
+    """Triggers knowledge graph generation using the live database."""
     try:
         from pipeline.graph_builder import build_knowledge_graph
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        json_path = os.path.join(base_dir, "processed_test_results.json")
-        build_knowledge_graph(json_path)
-        return {"status": "success", "output": "knowledge_graph.html"}
+        from pipeline.database import SessionLocal, Article
+        
+        db = SessionLocal()
+        articles = db.query(Article).all()
+        build_knowledge_graph(articles)
+        db.close()
+        
+        return {"status": "success", "output": "knowledge_graph.html", "nodes_count": "calculated"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
