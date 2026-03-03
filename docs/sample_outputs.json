@@ -1,0 +1,302 @@
+[
+  {
+    "enrichment": {
+      "executive_summary": "An oil tanker MV BERTHA has been detained by Chinese port state control authorities at Ningbo-Zhoushan Port after inspectors flagged serious safety deficiencies during a routine inspection. The vessel, managed by Pacific Maritime Holdings, was found operating with expired firefighting equipment and structural integrity issues in its ballast tanks. The detention has disrupted scheduled crude oil deliveries to a local refinery, with financial implications estimated at $2.4M per day of delay. The incident underscores growing regulatory scrutiny of aging tanker fleets operating in East Asian waters.",
+      "risk_level": "High",
+      "impact_scope": "Regional",
+      "strategic_relevance_tags": ["Port Detention", "Regulatory Enforcement", "Supply Chain Delay"],
+      "is_geopolitical": false,
+      "has_defense_implications": false,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-24-001",
+        "event_date": "2026-02-24",
+        "location": {
+          "port": "Ningbo-Zhoushan Port",
+          "country": "China",
+          "lat": 29.868,
+          "lon": 121.893
+        },
+        "vessels_involved": ["MV BERTHA"],
+        "organizations_involved": ["Pacific Maritime Holdings", "Ningbo Maritime Safety Administration"],
+        "incident_type": "Port Disruption",
+        "casualties": "0",
+        "cargo_type": "Crude Oil",
+        "summary": "Oil tanker MV BERTHA detained at Ningbo-Zhoushan Port by Chinese port state control due to expired firefighting equipment and ballast tank deficiencies, disrupting scheduled crude oil deliveries.",
+        "confidence_score": 0.92
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "A collision between a Panamanian-flagged container ship MSC FORTUNA and a local fishing vessel occurred in the Strait of Malacca near Port Klang, Malaysia. The incident resulted in the sinking of the fishing vessel with three crew members rescued and one still missing. Malaysian Maritime Enforcement Agency (MMEA) has launched a search-and-rescue operation and an investigation into navigational protocols. The collision has raised renewed concerns about congestion and safety in one of the world's busiest shipping lanes, handling approximately 25% of global trade.",
+      "risk_level": "Critical",
+      "impact_scope": "Regional",
+      "strategic_relevance_tags": ["Maritime Safety", "Strait of Malacca Congestion", "Search and Rescue"],
+      "is_geopolitical": false,
+      "has_defense_implications": false,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-22-001",
+        "event_date": "2026-02-22",
+        "location": {
+          "port": "Port Klang",
+          "country": "Malaysia",
+          "lat": 3.0,
+          "lon": 101.39
+        },
+        "vessels_involved": ["MSC FORTUNA", "Fishing Vessel (Unnamed)"],
+        "organizations_involved": ["MSC Mediterranean Shipping Company", "Malaysian Maritime Enforcement Agency"],
+        "incident_type": "Collision",
+        "casualties": "1 missing, 3 rescued",
+        "cargo_type": "Containerized Goods",
+        "summary": "Panamanian-flagged container ship MSC FORTUNA collided with a local fishing vessel in the Strait of Malacca near Port Klang. One crew member remains missing as MMEA conducts search-and-rescue operations.",
+        "confidence_score": 0.95
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "The European Union has significantly expanded its sanctions framework against Russia's shadow fleet operations, designating 14 additional vessels suspected of transporting Russian crude oil above the G7 price cap of $60 per barrel. Several of the flagged tankers, including SEAVOYAGER and NORTH STAR, are linked to complex ownership structures through shell companies registered in the UAE and Cameroon. Insurance providers in London and Oslo have been instructed to immediately cease coverage for the listed vessels. The designations represent the most aggressive enforcement action since the oil price cap mechanism was introduced in December 2022.",
+      "risk_level": "Critical",
+      "impact_scope": "Global",
+      "strategic_relevance_tags": ["Sanctions Evasion", "Shadow Fleet", "Oil Price Cap"],
+      "is_geopolitical": true,
+      "has_defense_implications": false,
+      "is_sanction_sensitive": true
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-20-001",
+        "event_date": "2026-02-20",
+        "location": {
+          "port": null,
+          "country": "European Union",
+          "lat": null,
+          "lon": null
+        },
+        "vessels_involved": ["SEAVOYAGER", "NORTH STAR"],
+        "organizations_involved": ["European Union", "G7", "OFAC"],
+        "incident_type": "Sanctions",
+        "casualties": "0",
+        "cargo_type": "Crude Oil",
+        "summary": "EU expanded sanctions framework designating 14 additional shadow fleet vessels transporting Russian crude oil above the G7 price cap, with immediate insurance coverage cessation ordered.",
+        "confidence_score": 0.93
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "The Indian Navy conducted a multi-day anti-piracy operation southwest of the Lakshadweep Islands after receiving distress signals from a Liberian-flagged bulk carrier MV OCEAN GRACE. A naval frigate INS Talwar intercepted and boarded a suspect dhow vessel carrying armed individuals. Four suspected pirates were apprehended and weapons confiscated. The operation reflects India's expanding maritime security posture in the Indian Ocean Region amid rising piracy incidents linked to Somali networks extending their operational range eastward.",
+      "risk_level": "High",
+      "impact_scope": "Regional",
+      "strategic_relevance_tags": ["Piracy Trend", "Indian Ocean Security", "Navy Operations"],
+      "is_geopolitical": true,
+      "has_defense_implications": true,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-18-001",
+        "event_date": "2026-02-18",
+        "location": {
+          "port": null,
+          "country": "India",
+          "lat": 10.57,
+          "lon": 72.64
+        },
+        "vessels_involved": ["MV OCEAN GRACE", "INS Talwar"],
+        "organizations_involved": ["Indian Navy", "Somali Piracy Network"],
+        "incident_type": "Piracy",
+        "casualties": "0",
+        "cargo_type": "Iron Ore",
+        "summary": "Indian Navy's INS Talwar intercepted pirates targeting bulk carrier MV OCEAN GRACE near Lakshadweep Islands. Four suspects apprehended, weapons seized during anti-piracy boarding operation.",
+        "confidence_score": 0.91
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "A catastrophic engine room fire broke out aboard the chemical tanker STOLT INNOVATION while anchored at Fujairah Anchorage in the UAE. The vessel was carrying a mixed cargo of methanol and ethylene glycol. Three crew members sustained burn injuries and were airlifted to Rashid Hospital in Dubai. The fire was contained after six hours of combined efforts by the Fujairah Port Fire Brigade and two offshore firefighting tugs. Environmental monitoring teams reported no chemical spillage into adjacent waters. The incident has temporarily halted bunkering operations at one of the Gulf's busiest anchorages.",
+      "risk_level": "Critical",
+      "impact_scope": "Regional",
+      "strategic_relevance_tags": ["Environmental Risk", "Chemical Tanker Safety", "Gulf Disruption"],
+      "is_geopolitical": false,
+      "has_defense_implications": false,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-16-001",
+        "event_date": "2026-02-16",
+        "location": {
+          "port": "Fujairah Anchorage",
+          "country": "UAE",
+          "lat": 25.12,
+          "lon": 56.33
+        },
+        "vessels_involved": ["STOLT INNOVATION"],
+        "organizations_involved": ["Stolt Tankers", "Fujairah Port Authority"],
+        "incident_type": "Accident",
+        "casualties": "3 injured",
+        "cargo_type": "Methanol, Ethylene Glycol",
+        "summary": "Engine room fire aboard chemical tanker STOLT INNOVATION at Fujairah Anchorage. Three crew burned, fire contained after six hours. No chemical spillage reported but bunkering operations halted.",
+        "confidence_score": 0.94
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "Taiwan's Ministry of National Defense reported a significant increase in PLA Navy (PLAN) activity in waters surrounding Taiwan, with multiple Type 054A frigates and a Type 075 amphibious assault ship conducting live-fire exercises within Taiwan's Air Defense Identification Zone (ADIZ). The exercises coincide with rising diplomatic tensions over recent arms sales and a contested maritime boundary claim near the Pratas Islands. Commercial shipping routes between Kaohsiung and Hong Kong have been temporarily diverted, adding 18 hours to transit times for container carriers serving the route.",
+      "risk_level": "Critical",
+      "impact_scope": "Global",
+      "strategic_relevance_tags": ["Geopolitical Flashpoint", "Taiwan Strait", "Military Exercises"],
+      "is_geopolitical": true,
+      "has_defense_implications": true,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-15-001",
+        "event_date": "2026-02-15",
+        "location": {
+          "port": null,
+          "country": "Taiwan",
+          "lat": 23.5,
+          "lon": 120.0
+        },
+        "vessels_involved": ["Type 054A Frigate", "Type 075 LHD"],
+        "organizations_involved": ["PLA Navy", "Taiwan Ministry of National Defense"],
+        "incident_type": "Military Activity",
+        "casualties": "0",
+        "cargo_type": null,
+        "summary": "PLA Navy conducted live-fire exercises near Taiwan's ADIZ with frigates and amphibious assault ships. Commercial shipping between Kaohsiung and Hong Kong diverted, adding 18 hours transit time.",
+        "confidence_score": 0.89
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "A bulk carrier CRIMSON TIDE ran aground in the Suez Canal near Kilometer 151 after suffering a steering gear malfunction during northbound transit. The vessel, loaded with 65,000 metric tons of Ukrainian wheat, blocked one lane of the waterway for approximately 14 hours before being refloated by Suez Canal Authority tug boats. The blockage created a queue of 47 vessels waiting for transit and is estimated to have caused $400M in global supply chain delays. The SCA has announced an investigation into the vessel's pre-transit mechanical certification.",
+      "risk_level": "Critical",
+      "impact_scope": "Global",
+      "strategic_relevance_tags": ["Supply Chain Shock", "Suez Canal", "Chokepoint Risk"],
+      "is_geopolitical": false,
+      "has_defense_implications": false,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-12-001",
+        "event_date": "2026-02-12",
+        "location": {
+          "port": "Suez Canal",
+          "country": "Egypt",
+          "lat": 30.58,
+          "lon": 32.31
+        },
+        "vessels_involved": ["CRIMSON TIDE"],
+        "organizations_involved": ["Suez Canal Authority"],
+        "incident_type": "Port Disruption",
+        "casualties": "0",
+        "cargo_type": "Wheat",
+        "summary": "Bulk carrier CRIMSON TIDE grounded in the Suez Canal due to steering failure, blocking one lane for 14 hours. 47 vessels queued, estimated $400M in supply chain delays before refloating.",
+        "confidence_score": 0.96
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "Singapore's Maritime and Port Authority (MPA) has issued a marine environmental alert after detecting a 12-kilometer oil slick emanating from the anchorage area east of Pedra Branca. Satellite imagery and aerial surveillance traced the spill to an unidentified vessel that conducted illegal tank-cleaning operations overnight. MPA has deployed five oil spill response vessels and activated containment booms to prevent the slick from reaching Changi Beach and the Johor Strait marine ecosystem. The estimated volume of the spill is 800 metric tons of heavy fuel oil.",
+      "risk_level": "High",
+      "impact_scope": "Regional",
+      "strategic_relevance_tags": ["Environmental Fines", "Oil Spill", "Singapore Strait"],
+      "is_geopolitical": false,
+      "has_defense_implications": false,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-10-001",
+        "event_date": "2026-02-10",
+        "location": {
+          "port": "Pedra Branca Anchorage",
+          "country": "Singapore",
+          "lat": 1.33,
+          "lon": 104.41
+        },
+        "vessels_involved": ["Unidentified Vessel"],
+        "organizations_involved": ["Maritime and Port Authority of Singapore"],
+        "incident_type": "Environmental Incident",
+        "casualties": "0",
+        "cargo_type": "Heavy Fuel Oil",
+        "summary": "A 12km oil slick detected near Pedra Branca, traced to illegal tank-cleaning. MPA deployed five response vessels and containment booms. Approximately 800 metric tons of heavy fuel oil spilled.",
+        "confidence_score": 0.87
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "The International Maritime Organization (IMO) has ratified amendments to the MARPOL Annex VI regulations, mandating that all newbuild vessels above 5,000 GT must incorporate Carbon Capture and Storage (CCS) readiness from 2028 onwards. Additionally, existing vessels must achieve a 30% reduction in Carbon Intensity Indicator (CII) ratings by 2030. Major shipping conglomerates including Maersk, CMA CGM, and Hapag-Lloyd have issued joint statements supporting the regulation while noting the estimated $5 billion industry-wide compliance cost. The move signals the most aggressive decarbonization mandate in maritime history.",
+      "risk_level": "Medium",
+      "impact_scope": "Global",
+      "strategic_relevance_tags": ["Decarbonization", "IMO Regulation", "Industry Compliance"],
+      "is_geopolitical": false,
+      "has_defense_implications": false,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-08-001",
+        "event_date": "2026-02-08",
+        "location": {
+          "port": null,
+          "country": "United Kingdom",
+          "lat": 51.5,
+          "lon": -0.1
+        },
+        "vessels_involved": [],
+        "organizations_involved": ["International Maritime Organization", "Maersk", "CMA CGM", "Hapag-Lloyd"],
+        "incident_type": "Regulatory Development",
+        "casualties": "0",
+        "cargo_type": null,
+        "summary": "IMO ratified MARPOL Annex VI amendments requiring CCS-readiness for newbuilds from 2028 and 30% CII reduction by 2030, with estimated $5 billion industry-wide compliance costs.",
+        "confidence_score": 0.90
+      }
+    ]
+  },
+  {
+    "enrichment": {
+      "executive_summary": "Global container shipping rates on the Asia-Europe trade lane surged 340% over four weeks as Houthi anti-ship missile attacks in the Red Sea forced a mass rerouting of commercial vessels around the Cape of Good Hope. Maersk, Hapag-Lloyd, and MSC have suspended all Red Sea transits indefinitely. The re-routing adds approximately 10-14 days to voyage times and an estimated $1M per vessel in additional fuel costs. Analysts warn that continued disruption could trigger a secondary inflation wave in European consumer goods markets. Insurance premiums for Red Sea transits have risen over 600% since the attacks began.",
+      "risk_level": "Critical",
+      "impact_scope": "Global",
+      "strategic_relevance_tags": ["Red Sea Crisis", "Supply Chain Shock", "Freight Rate Surge"],
+      "is_geopolitical": true,
+      "has_defense_implications": true,
+      "is_sanction_sensitive": false
+    },
+    "events": [
+      {
+        "event_id": "EVT-2026-02-05-001",
+        "event_date": "2026-02-05",
+        "location": {
+          "port": "Bab el-Mandeb Strait",
+          "country": "Yemen",
+          "lat": 12.58,
+          "lon": 43.33
+        },
+        "vessels_involved": [],
+        "organizations_involved": ["Maersk", "Hapag-Lloyd", "MSC Mediterranean Shipping Company", "Houthi Movement"],
+        "incident_type": "Military Activity",
+        "casualties": "0",
+        "cargo_type": "Containerized Goods",
+        "summary": "Asia-Europe shipping rates surged 340% as Houthi missile attacks forced Red Sea transit suspensions by all major carriers. Cape of Good Hope rerouting adds 10-14 days and $1M per vessel in fuel costs.",
+        "confidence_score": 0.97
+      }
+    ]
+  }
+]

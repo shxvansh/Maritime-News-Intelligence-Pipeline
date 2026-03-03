@@ -1,0 +1,82 @@
+[
+    {
+        "question": "Why was the cruise vessel Blue Dream Melody arrested?",
+        "ground_truth": "The Blue Dream Melody was arrested at Beihai Port, China due to a bunker payment dispute with Island Oil Limited."
+    },
+    {
+        "question": "What incident occurred involving the freighter Mon Desir in Germany?",
+        "ground_truth": "The Netherlands-flagged freighter Mon Desir developed leaks during unloading operations of road salt in Andernach harbour."
+    },
+    {
+        "question": "Which sanctioned oil tanker was boarded by US forces in the Indian Ocean on 24 February?",
+        "ground_truth": "The sanctioned oil tanker Bertha was boarded by US forces in the Indian Ocean."
+    },
+    {
+        "question": "Which port in China recorded the highest Port State Control detention rate in January 2026?",
+        "ground_truth": "Huanghua (China) recorded the highest detention rate at 15.38%."
+    },
+    {
+        "question": "What company was involved in managing the sanctioned oil tanker Bertha?",
+        "ground_truth": "Shanghai Legendary Ship Management Company Limited was involved in managing the Bertha."
+    },
+    {
+        "question": "What happened to the cargo vessel Dura Bulk on 28 February?",
+        "ground_truth": "The Panama-flagged general cargo vessel Dura Bulk sank off the coast of Laayoune. All crew members were rescued."
+    },
+    {
+        "question": "Where did missile debris hit a vessel undergoing repairs?",
+        "ground_truth": "Missile debris from intercepted Iranian missiles struck a foreign-flagged vessel undergoing repairs at Salman Industrial City in Bahrain."
+    },
+    {
+        "question": "Were there any casualties in the missile strike at Bahrain port?",
+        "ground_truth": "Yes, Bahrain’s Interior Ministry confirmed that one person was killed and two others injured."
+    },
+    {
+        "question": "What incident involved the Norway-flagged ferry Lote on 28 February?",
+        "ground_truth": "The Ro-Ro passenger ferry Lote ran aground in the Tysfjorden, Skarberget, Norway. No injuries were reported."
+    },
+    {
+        "question": "Which country seized the suspected Russian shadow fleet tanker Ethera?",
+        "ground_truth": "Belgian forces, assisted by French helicopters, boarded and seized the tanker Ethera in the North Sea."
+    },
+    {
+        "question": "How many oil tankers were attacked in the Strait of Hormuz region on March 1?",
+        "ground_truth": "Two additional oil tankers were reportedly attacked in the Strait of Hormuz on March 1."
+    },
+    {
+        "question": "What was the result of the attack on the Liberian-flagged tanker MKD Vyom?",
+        "ground_truth": "The MKD Vyom was struck by a projectile near Muscat, resulting in the death of one crew member."
+    },
+    {
+        "question": "Which two cargo ships collided at Bartin Port in Turkey?",
+        "ground_truth": "The vessel North Moon collided with Gold Lucky off the Turkish coast at Bartin Port."
+    },
+    {
+        "question": "How many crew members were injured on the tanker Skylight?",
+        "ground_truth": "Oman's Maritime Security Centre confirmed four crew members were injured when the sanctioned tanker Skylight was struck."
+    },
+    {
+        "question": "What type of vessel is the MSC Shannon III?",
+        "ground_truth": "The MSC Shannon III is a Panama-flagged container vessel."
+    },
+    {
+        "question": "What caused the MSC Shannon III to become stranded?",
+        "ground_truth": "The vessel became temporarily stranded on the Western Scheldt near Waarde after suffering an anchor malfunction."
+    },
+    {
+        "question": "Describe the machinery failure on the Nordborg.",
+        "ground_truth": "The Dutch general cargo vessel Nordborg suffered engine problems north of Borkum Island in the North Sea and was towed to safety."
+    },
+    {
+        "question": "Why did the Ionikos lose containers off the coast of Morocco?",
+        "ground_truth": "The Liberian-flagged containership Ionikos lost containers overboard off Casablanca, Morocco due to heavy swell."
+    },
+    {
+        "question": "Who was the luxury vessel 'Four Seasons I' delivered to?",
+        "ground_truth": "Italian shipbuilder Fincantieri delivered 'Four Seasons I' to Marc-Henry Cruise Holdings Ltd."
+    },
+    {
+        "question": "What cargo was the freighter Mon Desir unloading when it developed leaks?",
+        "ground_truth": "The inland motor freighter Mon Desir was loaded with road salt when it developed leaks in Andernach harbour."
+    }
+]
