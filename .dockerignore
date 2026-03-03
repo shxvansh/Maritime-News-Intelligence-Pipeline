@@ -1,0 +1,22 @@
+# Ignore Python virtual environment
+venv/
+.venv/
+env/
+__pycache__/
+
+# Ignore Git
+.git/
+.gitignore
+
+# Ignore large output/testing files
+*.html
+*.png
+latest_articles.json
+processed_test_results.json
+
+# Ignore local configs
+.env
+.env.example
+
+# Ignore local documentation that's already in root
+docs/

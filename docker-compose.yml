@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # The Database
   db:
@@ -11,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
       POSTGRES_DB: ${POSTGRES_DB:-maritime_intel}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +18,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # The Intelligence Pipeline
+  # The Intelligence Pipeline Execution (Runs once)
   pipeline:
     build: .
     container_name: maritime_pipeline
@@ -28,15 +26,57 @@ services:
       db:
         condition: service_healthy
     environment:
-      # Inject the API Key and DB URL here; if they don't exist in .env fallback dynamically to the defaults
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secret}@db:5432/${POSTGRES_DB:-maritime_intel}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - QDRANT_URL=${QDRANT_URL}
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secret}@db:5432/${POSTGRES_DB:-maritime_intel}
+      - HF_HOME=/cache/huggingface
     volumes:
-      # Mount the JSON files to safely pass scrape inputs / extract outputs without copying them rigidly into the image
       - ./latest_articles.json:/app/latest_articles.json
       - ./processed_test_results.json:/app/processed_test_results.json
+      - huggingface_cache:/cache/huggingface
     command: python pipeline/main.py
 
+  # The FastAPI Backend
+  api:
+    build: .
+    container_name: maritime_api
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - QDRANT_URL=${QDRANT_URL}
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secret}@db:5432/${POSTGRES_DB:-maritime_intel}
+      - HF_HOME=/cache/huggingface
+    volumes:
+      - huggingface_cache:/cache/huggingface
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+  # The Streamlit Dashboard
+  dashboard:
+    build: .
+    container_name: maritime_dashboard
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "8501:8501"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secret}@db:5432/${POSTGRES_DB:-maritime_intel}
+      - API_URL=http://api:8000
+      - HF_HOME=/cache/huggingface
+    volumes:
+      - huggingface_cache:/cache/huggingface
+    command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+
 volumes:
-  # This makes sure Postgres data persists if the container is destroyed
   postgres_data:
+  # Shared model cache — models download once on first run, reused by all services
+  huggingface_cache:
+
