@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -57,9 +58,13 @@ async def lifespan(app: FastAPI):
     from RAG.security import SecurityManager
     ml_models["security_manager"] = SecurityManager()
 
+    print("preloading sentence transformer for bertopic...")
+    # BERTopic defaults to `all-MiniLM-L6-v2`
+    ml_models["bertopic_embedding_model"] = SentenceTransformer("all-MiniLM-L6-v2")
+
     print("pre-init bertopic analytics engine...")
     from pipeline.analytics_engine import AnalyticsEngine
-    ml_models["analytics_engine"] = AnalyticsEngine()
+    ml_models["analytics_engine"] = AnalyticsEngine(embedding_model=ml_models["bertopic_embedding_model"])
     
     print("all models succesfully preloaded into memory!")
     yield
@@ -362,6 +367,30 @@ def run_topic_model():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/analytics/topic-model/html", response_class=HTMLResponse)
+def get_topic_model_html():
+    """Serves the generated BERTopic HTML dashboard content for the frontend iframe."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    html_path = os.path.join(base_dir, "theme_dashboard.html")
+    if not os.path.exists(html_path):
+        raise HTTPException(status_code=404, detail="Topic model not yet generated. Run the topic model first.")
+    with open(html_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    return HTMLResponse(content=content)
+
+
+@app.get("/analytics/knowledge-graph/html", response_class=HTMLResponse)
+def get_knowledge_graph_html():
+    """Serves the generated Knowledge Graph HTML content for the frontend iframe."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    html_path = os.path.join(base_dir, "knowledge_graph.html")
+    if not os.path.exists(html_path):
+        raise HTTPException(status_code=404, detail="Knowledge graph not yet generated. Run the graph builder first.")
+    with open(html_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    return HTMLResponse(content=content)
+
+
 # 5. SECURE RAG CHATBOT ENDPOINT (Graph-Augmented Hybrid Search + Guardrails)
 @app.post("/rag/chat")
 @limiter.limit("10/minute")
@@ -489,13 +518,14 @@ def rag_evaluate(req: EvalRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# 5c. RAG INGESTION ENDPOINT
 @app.post("/rag/ingest")
 def rag_ingest():
     """Triggers the Graph-Augmented Hybrid RAG ingestion from PostgreSQL to Qdrant Cloud."""
     try:
         from RAG.ingester import ingest_from_database
-        ingest_from_database()
+        # pass the preloaded sentence transformer — avoids lazy-loading the model on first ingest
+        preloaded_model = ml_models.get("sentence_transformer")
+        ingest_from_database(model=preloaded_model)
         return {"status": "success", "message": "RAG ingestion completed successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

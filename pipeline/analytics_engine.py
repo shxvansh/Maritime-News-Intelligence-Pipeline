@@ -92,13 +92,14 @@ class AnalyticsEngine:
     lifespan context manager so all BERTopic sub-model libraries are already
     loaded into memory when the /analytics/topic-model endpoint is called.
     """
-    def __init__(self):
+    def __init__(self, embedding_model=None):
         print(" pre-init bertopic sub-models (umap, hdbscan, countvectorizer)...")
         self.BERTopic = BERTopic
         self.UMAP = UMAP
         self.HDBSCAN = HDBSCAN
         self.CountVectorizer = CountVectorizer
         self.Preprocessor = Preprocessor
+        self.embedding_model = embedding_model
         print(" bertopic sub-models pre-initialized.")
 
     def run(self, json_filepath: str) -> dict:
@@ -152,14 +153,20 @@ def _run_topic_modeling_impl(json_filepath, engine=None):
         token_pattern=r'\b[a-zA-Z]{4,}\b'  # only words ≥ 4 letters, no numbers
     )
 
-    topic_model = BERTopic(
-        umap_model=umap_model,
-        hdbscan_model=hdbscan_model,
-        vectorizer_model=vectorizer_model,
-        language="english",
-        calculate_probabilities=True,
-        verbose=True,
-    )
+    topic_model_kwargs = {
+        "umap_model": umap_model,
+        "hdbscan_model": hdbscan_model,
+        "vectorizer_model": vectorizer_model,
+        "calculate_probabilities": True,
+        "verbose": True,
+    }
+    
+    if engine and engine.embedding_model:
+        topic_model_kwargs["embedding_model"] = engine.embedding_model
+    else:
+        topic_model_kwargs["language"] = "english"
+
+    topic_model = BERTopic(**topic_model_kwargs)
 
     topics, probs = topic_model.fit_transform(docs)
 

@@ -36,7 +36,7 @@ class RAGEvaluator:
         self.model = None
         self.qdrant = None
         if load_models:
-            print("⏳ Loading embedding model for evaluation fetcher...")
+            print(" loading embedding model for evaluation fetcher...")
             # Since evaluation loads the model, we pass it to query functions directly to avoid reloading
             self.model = SentenceTransformer('BAAI/bge-large-en-v1.5')
             self.qdrant = QdrantManager()
@@ -47,7 +47,7 @@ class RAGEvaluator:
         # 1. We ask the chatbot natively to get its answer and source metadata
         # Supress stdout completely if you want a cleaner console, but we'll leave it 
         # for a cool visual trace here.
-        print("\n--- Sending request to Intelligence System ---")
+        print("\n--- sending request to intelligence system ---")
         result = ask_question(question, self.model)
         answer = result["answer"]
         
@@ -163,7 +163,7 @@ Provide a brief reasoning, then end with strict formatting "SCORE: X.X" where X.
         return metrics
 
     def run_evaluation(self, dataset_path: str):
-        print(f"\n🚀 Initializing RAG Evaluation using dataset: {os.path.basename(dataset_path)}")
+        print(f"\n Initializing RAG Evaluation using dataset: {os.path.basename(dataset_path)}")
         with open(dataset_path, 'r', encoding='utf-8') as f:
             eval_data = json.load(f)
 
@@ -173,15 +173,15 @@ Provide a brief reasoning, then end with strict formatting "SCORE: X.X" where X.
             gt = item['ground_truth']
             
             print(f"\n" + "-"*60)
-            print(f"📝 Evaluating Case {i+1}/{len(eval_data)}")
+            print(f" Evaluating Case {i+1}/{len(eval_data)}")
             print(f"Q: {q}")
             
             context, answer = self.get_context_and_answer(q)
             
-            print(f"🧠 Running LLM-as-a-Judge grading...")
+            print(f" Running LLM-as-a-Judge grading...")
             scores = self.evaluate_triad(q, gt, context, answer)
             
-            print(f"📊 Scores: CR={scores['Context Relevance']} | FA={scores['Faithfulness']} | AR={scores['Answer Relevance']}")
+            print(f" Scores: CR={scores['Context Relevance']} | FA={scores['Faithfulness']} | AR={scores['Answer Relevance']}")
             
             results.append({
                 "question": q,
@@ -189,7 +189,7 @@ Provide a brief reasoning, then end with strict formatting "SCORE: X.X" where X.
             })
 
         print("\n\n" + "="*50)
-        print("🏆 FINAL EVALUATION REPORT")
+        print(" final evaluation report")
         print("="*50)
         
         avg_cr = sum([r['scores']['Context Relevance'] for r in results]) / len(results)
@@ -220,7 +220,7 @@ Provide a brief reasoning, then end with strict formatting "SCORE: X.X" where X.
                 f.write(f"- **Faithfulness:** {s['Faithfulness']} \n")
                 f.write(f"- **Answer Relevance:** {s['Answer Relevance']} \n\n")
 
-        print(f"📁 Detailed report saved to: {report_path}\n")
+        print(f" Detailed report saved to: {report_path}\n")
 
 
 if __name__ == "__main__":

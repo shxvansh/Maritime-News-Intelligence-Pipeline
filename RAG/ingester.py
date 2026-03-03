@@ -21,9 +21,7 @@ from sentence_transformers import SentenceTransformer
 from qdrant_client.http.models import PointStruct, SparseVector
 
 
-# ---------------------------------------------------------------------------
 # Sparse Vector (BM25-like) Generator
-# ---------------------------------------------------------------------------
 def compute_sparse_vector(text: str) -> SparseVector:
     """
     Computes a simple BM25-inspired sparse vector from the text.
@@ -52,9 +50,7 @@ def compute_sparse_vector(text: str) -> SparseVector:
     return SparseVector(indices=indices, values=values)
 
 
-# ---------------------------------------------------------------------------
 # Knowledge Graph Augmentation
-# ---------------------------------------------------------------------------
 def build_graph_context(events: list) -> str:
     """
     Takes the structured MaritimeEvent records linked to an article and
@@ -105,10 +101,9 @@ def build_graph_context(events: list) -> str:
     return "Context: " + " ".join(tags) + ". "
 
 
-# ---------------------------------------------------------------------------
 # Main Ingestion Pipeline
-# ---------------------------------------------------------------------------
-def ingest_from_database():
+def ingest_from_database(model=None):
+    # might need to refactor this later
     """
     Production ingestion pipeline:
     1. Reads un-embedded articles from PostgreSQL
@@ -118,13 +113,16 @@ def ingest_from_database():
     5. Upserts into Qdrant Cloud
     6. Marks articles as embedded in PostgreSQL
     """
-    print("🚀 Initializing Graph-Augmented Hybrid RAG Ingestion...")
+    print(" init graph-augmented hybrid rag ingestion...")
     print("=" * 60)
     
-    # --- 1. Load the Embedding Model ---
-    print("⏳ Loading embedding model (BAAI/bge-large-en-v1.5)...")
-    model = SentenceTransformer('BAAI/bge-large-en-v1.5')
-    print(f"   ✅ Model loaded. Vector dimension: {model.get_sentence_embedding_dimension()}")
+    # --- 1. Load the Embedding Model (reuse preloaded one if available) ---
+    if model is None:
+        print(" loading embedding model (baai/bge-large-en-v1.5)...")
+        model = SentenceTransformer('BAAI/bge-large-en-v1.5')
+    else:
+        print(" reusing preloaded embedding model from server startup.")
+    print(f"    Model loaded. Vector dimension: {model.get_sentence_embedding_dimension()}")
     
     # --- 2. Connect to Qdrant Cloud ---
     qdrant = QdrantManager()
@@ -136,10 +134,10 @@ def ingest_from_database():
         articles = db.query(Article).filter(Article.is_embedded == False).all()
         
         if not articles:
-            print("✅ All articles are already embedded. Nothing to ingest.")
+            print(" all articles are already embedded. nothing to ingest.")
             return
         
-        print(f"📂 Found {len(articles)} un-embedded articles in PostgreSQL.")
+        print(f" Found {len(articles)} un-embedded articles in PostgreSQL.")
         
         points_to_insert = []
         total_chunks = 0
@@ -214,7 +212,7 @@ def ingest_from_database():
             articles_processed += 1
             
             if articles_processed % 10 == 0:
-                print(f"   📊 Progress: {articles_processed}/{len(articles)} articles processed...")
+                print(f"    Progress: {articles_processed}/{len(articles)} articles processed...")
         
         # Insert remaining chunks
         if points_to_insert:
@@ -224,7 +222,7 @@ def ingest_from_database():
         db.commit()
         
         print("\n" + "=" * 60)
-        print(f"✅ Ingestion Complete!")
+        print(f" Ingestion Complete!")
         print(f"   Articles processed: {articles_processed}")
         print(f"   Total chunks embedded: {total_chunks}")
         print(f"   Embedding model: BAAI/bge-large-en-v1.5 (1024-D)")
@@ -234,7 +232,7 @@ def ingest_from_database():
     
     except Exception as e:
         db.rollback()
-        print(f"❌ Ingestion failed: {e}")
+        print(f" Ingestion failed: {e}")
         raise
     finally:
         db.close()

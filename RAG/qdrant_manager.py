@@ -34,7 +34,7 @@ class QdrantManager:
             )
 
         print(f" Connecting to Qdrant Cloud at {qdrant_url}...")
-        self.client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
+        self.client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key, timeout=120)
         self.collection_name = collection_name
         self._ensure_collection_exists()
 
