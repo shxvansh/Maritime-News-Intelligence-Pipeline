@@ -9,11 +9,10 @@ import json
 import os
 import time
 
-# ---------------------------------------------------------------------------
 # Configuration
-# ---------------------------------------------------------------------------
-API_BASE = "http://localhost:8000"
+API_BASE = os.getenv("API_URL")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 st.set_page_config(
     page_title="Maritime Intelligence Command",
@@ -22,9 +21,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---------------------------------------------------------------------------
 # Dark Theme CSS (Defense-Grade, Formal, No Pop Colors)
-# ---------------------------------------------------------------------------
 st.markdown("""
 <style>
     /* Global */
@@ -171,10 +168,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------------------------
 # Helper Functions
-# ---------------------------------------------------------------------------
 def api_available():
+    # adding wait coz it fails sometimes
     try:
         r = requests.get(f"{API_BASE}/db/articles", timeout=3)
         return r.status_code == 200
@@ -198,9 +194,7 @@ def render_flag_tags(article):
     return tags
 
 
-# ---------------------------------------------------------------------------
 # Sidebar Navigation
-# ---------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### Maritime Intelligence")
     st.markdown("##### Command Dashboard")
@@ -229,9 +223,7 @@ with st.sidebar:
     st.markdown(f"<p style='font-size:11px; color:#8b949e;'>Session: {time.strftime('%Y-%m-%d %H:%M')}</p>", unsafe_allow_html=True)
 
 
-# ===========================================================================
-# PAGE 1: INGESTION CONTROL
-# ===========================================================================
+# page 1 - handles fetching data
 if page == "Ingestion Control":
     st.markdown("## Ingestion Control Center")
     st.markdown("Initiate data acquisition and intelligence extraction operations.")
@@ -289,9 +281,7 @@ if page == "Ingestion Control":
                 st.error(f"Ingestion request failed: {e}")
 
 
-# ===========================================================================
-# PAGE 2: INTELLIGENCE FEED
-# ===========================================================================
+# feed page - show catagories and events
 elif page == "Intelligence Feed":
     st.markdown("## Intelligence Feed")
     st.markdown("Classified and enriched maritime event reports.")
@@ -388,7 +378,7 @@ elif page == "Intelligence Feed":
             impact = article.get('impact_scope', 'Unknown')
             
             # The expander acts as the clickable bar
-            with st.expander(f"📑 {title}  |  Risk: {risk}  |  Impact: {impact}"):
+            with st.expander(f" {title}  |  Risk: {risk}  |  Impact: {impact}"):
                 
                 risk_tag = render_risk_tag(article.get("risk_level"))
                 flag_tags = render_flag_tags(article)
@@ -408,7 +398,7 @@ elif page == "Intelligence Feed":
                 """, unsafe_allow_html=True)
 
                 if article.get("url"):
-                    st.markdown(f"<a href='{article['url']}' target='_blank'><button style='background-color:#1f6feb;color:white;border:none;padding:5px 12px;border-radius:5px;cursor:pointer;margin-bottom:15px;'>🔗 Source URL</button></a>", unsafe_allow_html=True)
+                    st.markdown(f"<a href='{article['url']}' target='_blank'><button style='background-color:#1f6feb;color:white;border:none;padding:5px 12px;border-radius:5px;cursor:pointer;margin-bottom:15px;'> Source URL</button></a>", unsafe_allow_html=True)
 
                 st.markdown("#### Executive Summary")
                 st.write(article.get("executive_summary", "No summary available."))
@@ -459,9 +449,7 @@ elif page == "Intelligence Feed":
                     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ===========================================================================
-# PAGE 3: MACRO ANALYTICS
-# ===========================================================================
+# analytics view for themes and graph
 elif page == "Macro Analytics":
     st.markdown("## Macro Analytics")
     st.markdown("Strategic trend analysis and entity relationship mapping.")
@@ -516,9 +504,7 @@ elif page == "Macro Analytics":
             st.info("No knowledge graph available. Generate one using the button above.")
 
 
-# ===========================================================================
-# PAGE 4: RAG QUERY INTERFACE
-# ===========================================================================
+# rag chat interface
 elif page == "RAG Query Interface":
     st.markdown("## RAG Query Interface")
     st.markdown("Interrogate the intelligence database using natural language. Responses are grounded strictly in ingested article data.")

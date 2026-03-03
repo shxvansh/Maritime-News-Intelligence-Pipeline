@@ -3,12 +3,14 @@ from typing import List, Optional
 from enum import Enum
 
 class Location(BaseModel):
+    # calulate metrics
     port: Optional[str] = Field(None, description="The name of the port where the incident occurred, if any.")
     country: Optional[str] = Field(None, description="The country where the incident occurred.")
     lat: Optional[float] = Field(None, description="Latitude of the incident, if specified.")
     lon: Optional[float] = Field(None, description="Longitude of the incident, if specified.")
 
 class MaritimeEvent(BaseModel):
+    # todo check perfrmance here
     event_id: str = Field(..., description="A unique identifier for the event, e.g., EVT-<DATE>-<NUM>")
     event_date: str = Field(..., description="The date of the event in YYYY-MM-DD format.")
     location: Location

@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 class NLPEngine:
     def __init__(self):
-        print("Loading GLiNER model (this might take a minute on first run)...")
+        print("loading gliner model (this might take a minute on first run)...")
         # Ensure we use MPS if available (Apple Silicon), else CPU
         device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
         self.ner_model = GLiNER.from_pretrained("urchade/gliner_medium-v2.1").to(device)

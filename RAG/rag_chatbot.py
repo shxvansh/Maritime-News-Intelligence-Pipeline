@@ -23,15 +23,14 @@ from groq import Groq
 # Load .env to capture GROQ_API_KEY
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
-# ---------------------------------------------------------------------------
 # BGE Instruct Prefix (Critical for retrieval performance)
-# ---------------------------------------------------------------------------
 # BGE models are explicitly trained with task-specific prefixes.
 # For queries (retrieval), prepend this instruction to shape the vector.
 BGE_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 
 
 def compute_sparse_vector(text: str) -> SparseVector:
+    # initialzie the component
     """
     Computes a BM25-inspired sparse vector from the query text.
     Must use the same logic as ingester.py so the vectors are comparable.
@@ -56,6 +55,7 @@ def compute_sparse_vector(text: str) -> SparseVector:
 
 
 def ask_question(question: str, model: SentenceTransformer = None):
+    # todo check perfrmance here
     """
     Answers a user's question using Graph-Augmented Hybrid RAG.
     
@@ -66,22 +66,22 @@ def ask_question(question: str, model: SentenceTransformer = None):
     4. Compile retrieved chunks + graph context for the LLM
     5. Generate a grounded answer via Groq (LLaMA-4)
     """
-    print(f"\n🤔 Question: {question}")
-    print("⏳ Running Hybrid Search (Dense + Sparse)...")
+    print(f"\n Question: {question}")
+    print(" running hybrid search (dense + sparse)...")
     
-    # --- 1. Load or reuse the embedding model ---
+    # load model if we dont have one yet
     if model is None:
-        print("⏳ Loading embedding model (BAAI/bge-large-en-v1.5)...")
+        print(" loading embedding model (baai/bge-large-en-v1.5)...")
         model = SentenceTransformer('BAAI/bge-large-en-v1.5')
     
-    # --- 2. Embed the Query (with BGE instruct prefix) ---
+    # embed query
     instructed_query = BGE_QUERY_INSTRUCTION + question
     dense_query_vector = model.encode(instructed_query).tolist()
     
-    # --- 3. Generate Sparse Vector for the Query ---
+    # gen sparse vector
     sparse_query_vector = compute_sparse_vector(question)
     
-    # --- 4. Hybrid Search in Qdrant Cloud ---
+    # search in qdrant
     qdrant = QdrantManager()
     search_results = qdrant.hybrid_search(
         dense_vector=dense_query_vector,
@@ -90,12 +90,12 @@ def ask_question(question: str, model: SentenceTransformer = None):
     )
     
     if not search_results:
-        print("❌ Could not find any relevant information in the database.")
+        print(" could not find any relevant information in the database.")
         return {"answer": "No relevant information was found.", "sources": []}
     
-    print(f"✅ Found {len(search_results)} relevant chunks via Hybrid Search!")
+    print(f" Found {len(search_results)} relevant chunks via Hybrid Search!")
     
-    # --- 5. Compile context for the LLM ---
+    # compile context blocks
     context_blocks = []
     sources = []
     for idx, hit in enumerate(search_results):
@@ -121,13 +121,13 @@ def ask_question(question: str, model: SentenceTransformer = None):
     
     full_context = "\n\n---\n\n".join(context_blocks)
     
-    # --- 6. Generate the Answer via Groq (LLaMA-4) ---
+    # send to groq
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        print("❌ Error: GROQ_API_KEY environment variable is missing.")
+        print(" error: groq_api_key environment variable is missing.")
         return {"answer": "API key not configured.", "sources": []}
     
-    print("⏳ Asking LLaMA-4 to synthesize the intelligence report...")
+    print(" asking llama-4 to synthesize the intelligence report...")
     client = Groq(api_key=api_key)
     
     prompt = f"""You are an expert Maritime Intelligence Analyst working for a defense organization.
@@ -152,10 +152,10 @@ ANALYST QUESTION: {question}"""
     answer = response.choices[0].message.content
     
     print("\n\n" + "=" * 60)
-    print("🤖 MARITIME AI RESPONSE:")
+    print(" maritime ai response:")
     print("=" * 60)
     print(answer)
-    print("\n📎 Sources Retrieved (Hybrid Search):")
+    print("\n sources retrieved (hybrid search):")
     for src in sources:
         print(f"  - {src['title']} (Score: {src['score']}, Risk: {src['risk_level']})")
         if src['graph_context']:

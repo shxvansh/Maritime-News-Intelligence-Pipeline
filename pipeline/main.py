@@ -19,7 +19,7 @@ dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 load_dotenv(dotenv_path=dotenv_path)
 
 def main():
-    print("🚀 Initializing components...")
+    print(" init components...")
     init_db()  # Ensure tables exist
     preprocessor = Preprocessor()
     nlp_engine = NLPEngine()
@@ -30,7 +30,7 @@ def main():
     data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "latest_articles.json")
     
     if not os.path.exists(data_path):
-        print(f"❌ Could not find {data_path}. Please ensure the scraper has generated this file.")
+        print(f" Could not find {data_path}. Please ensure the scraper has generated this file.")
         return
         
     with open(data_path, "r", encoding="utf-8") as f:
@@ -38,7 +38,7 @@ def main():
         
     # We will test on 20 articles to verify the pipeline logic and filters
     test_batch = articles[:20]
-    print(f"\n📂 Found {len(articles)} articles. Processing a test batch of {len(test_batch)}...")
+    print(f"\n Found {len(articles)} articles. Processing a test batch of {len(test_batch)}...")
     
     total_processing_time = 0
     total_confidence_score = 0
@@ -48,38 +48,38 @@ def main():
         print(f"\n--- Processing Article {idx+1}/{len(test_batch)}: {article.get('title')} ---")
         start_time = time.time()
         
-        # 0. Deduplication Check via Database
+        # check if we already parsed this one
         raw_text = article.get("content", "") # Changed from "text" to "content" to match original structure
         article_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
         
         existing_article = db.query(Article).filter(Article.id == article_hash).first()
         if existing_article:
-            print("⏭️ Skipping: This article has already been processed and is in the database.")
+            print(" skipping: this article has already been processed and is in the database.")
             continue
             
-        # 1. Preprocessing (Cleaning & Normalizing)
+        # clean text using preprocessor
         processed_data = preprocessor.process_article(raw_text) # Reverted to original Preprocessor usage
         clean_text = processed_data["llm_ready_text"] # Use the llm_ready_text from preprocessor
-        print("✅ Preprocessing complete.")
+        print(" preprocessing complete.")
         
-        # 2. Local NLP Processing
+        # run nlp logic
         # NER
         entities = nlp_engine.extract_entities(clean_text)
-        print(f"✅ NER complete: Found {len(entities)} entities.")
+        print(f" NER complete: Found {len(entities)} entities.")
         
         # Classification (Zero-Shot)
         # LLM needs shorter text to avoid token limits, so we pass the first 1500 chars 
         llm_ready_text = clean_text[:1500] # Use the llm_ready_text from preprocessor, truncated
         classification = nlp_engine.classify_incident(llm_ready_text)
-        print(f"✅ Classification complete: {classification['label']} (Confidence: {classification['score']:.2f})")
+        print(f" Classification complete: {classification['label']} (Confidence: {classification['score']:.2f})")
         
-        # --- EARLY EXIT FILTER ---
-        # Don't waste Groq TPM limits on purely financial/regulatory announcements if NO incidents/cargo were flagged
+        # skip boring finnanical articles if no physical incidents
+        # saves api limits
         low_priority_labels = ["Financial or Shipping Markets", "Regulatory Development"]
         incident_entities = [e for e in entities if e['label'] in ["Incident Type", "Cargo"]]
         
         if classification['label'] in low_priority_labels and len(incident_entities) == 0:
-            print("⏭️ Filtering Out: Article marked as low priority with no physical incident entities.")
+            print(" filtering out: article marked as low priority with no physical incident entities.")
             
             # Save the early-exit to the DB so we don't re-process it tomorrow
             try:
@@ -96,12 +96,12 @@ def main():
                 db.commit()
             except Exception as e:
                 db.rollback()
-                print(f"❌ Database Insertion Failed for early exit: {e}")
+                print(f" Database Insertion Failed for early exit: {e}")
             continue
             
-        # 3. LLM Event Extraction
+        # pass to llm to get events
         known_assets = article.get("assets", {}).get("data", [])
-        print("⏳ Passing to Groq LPU for structured extraction...")
+        print(" passing to groq lpu for structured extraction...")
         
         extracted_events = llm_extractor.extract_events(
             text=llm_ready_text, 
@@ -112,7 +112,7 @@ def main():
         elapsed = time.time() - start_time
         
         if extracted_events:
-            print("✅ LLM Extraction successful!")
+            print(" llm extraction successful!")
             try:
                 # Extract the semantic enrichment from the Pydantic dictionary
                 enrichment = extracted_events.get("enrichment", {})
@@ -162,9 +162,9 @@ def main():
                 total_confidence_score += classification['score']
             except Exception as e:
                 db.rollback()
-                print(f"❌ Database Insertion Failed: {e}")
+                print(f" Database Insertion Failed: {e}")
         else:
-            print("❌ LLM Extraction failed.")
+            print(" llm extraction failed.")
 
     db.close()
 
@@ -172,11 +172,11 @@ def main():
         avg_time = total_processing_time / processed_count
         avg_conf = total_confidence_score / processed_count
         
-        print("\n📊 --- Metrics for Executed Batch ---")
-        print(f"⏱️  Average Processing Time: {avg_time:.2f} seconds per article")
-        print(f"📈 Average NLP Confidence: {avg_conf:.2f}")
+        print("\n --- metrics for executed batch ---")
+        print(f"  Average Processing Time: {avg_time:.2f} seconds per article")
+        print(f" Average NLP Confidence: {avg_conf:.2f}")
 
-    print("\n🎉 Finished batch. Data stored securely in local PostgreSQL Database.")
+    print("\n finished batch. data stored securely in local postgresql database.")
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,5 @@
 """
-Maritime News Intelligence Pipeline - FastAPI Backend
-Wraps the entire pipeline (scraper, NLP, LLM, RAG, analytics) into REST endpoints.
+Maritime new intelligence pipeline. This file makes the API Wrapper for the pipeline and the RAG.
 """
 
 import os
@@ -35,8 +34,14 @@ ml_models = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load the ML models during startup
-    print("⏳ Preloading Machine Learning Models... (This ensures zero latency later)")
+    # auto-create db tables on start (works locally and in docker)
+    print("init database tables...")
+    from pipeline.database import Base, engine
+    Base.metadata.create_all(bind=engine)
+    print("database tables ready.")
+
+    # Load the ML models during startup to prevent lazy loading. 
+    print("preloading machine learning models... (this ensures zero latency later)")
     
     from pipeline.nlp_engine import NLPEngine
     from pipeline.llm_extractor import LLMExtractor
@@ -45,14 +50,18 @@ async def lifespan(app: FastAPI):
     ml_models["nlp_engine"] = NLPEngine()
     ml_models["llm_extractor"] = LLMExtractor()
     
-    print("⏳ Loading RAG Vectors (BAAI/bge-large-en-v1.5)...")
+    print("loading rag vectors...")
     ml_models["sentence_transformer"] = SentenceTransformer("BAAI/bge-large-en-v1.5")
     
-    print("⏳ Loading Security Manager (Presidio PII + Guardrails)...")
+    print("loading security manager (presidio pii + guardrails)...")
     from RAG.security import SecurityManager
     ml_models["security_manager"] = SecurityManager()
+
+    print("pre-init bertopic analytics engine...")
+    from pipeline.analytics_engine import AnalyticsEngine
+    ml_models["analytics_engine"] = AnalyticsEngine()
     
-    print("✅ All models successfully preloaded into memory!")
+    print("all models succesfully preloaded into memory!")
     yield
     # Clean up the models on shutdown
     ml_models.clear()
@@ -75,9 +84,8 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------------------------
-# Request / Response Models
-# ---------------------------------------------------------------------------
+
+# define request and response schemas here
 class ChatRequest(BaseModel):
     question: str
 
@@ -92,9 +100,7 @@ class PipelineRunRequest(BaseModel):
     batch_size: int = 20
 
 
-# ---------------------------------------------------------------------------
-# 1. SCRAPER ENDPOINT
-# ---------------------------------------------------------------------------
+# scraper trigger
 @app.post("/pipeline/scrape")
 def run_scraper():
     """Triggers the GraphQL scraper and returns the count of fetched articles."""
@@ -140,11 +146,10 @@ def run_scraper():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ---------------------------------------------------------------------------
-# 2. FULL PIPELINE EXTRACTION ENDPOINT
-# ---------------------------------------------------------------------------
+# runs the whole extraction pipeline
 @app.post("/pipeline/run")
 def run_extraction_pipeline(req: PipelineRunRequest):
+    # adding wait coz it fails sometimes
     """Runs the full NLP + LLM extraction pipeline on the scraped articles."""
     from pipeline.preprocessor import Preprocessor
     from pipeline.database import SessionLocal, init_db, Article, MaritimeEvent
@@ -270,11 +275,10 @@ def run_extraction_pipeline(req: PipelineRunRequest):
     return {"status": "success", "articles_processed": processed_count, "details": results}
 
 
-# ---------------------------------------------------------------------------
 # 3. DATABASE QUERY ENDPOINTS
-# ---------------------------------------------------------------------------
 @app.get("/db/articles")
 def get_articles():
+    # not sure if this is the best way but it works
     """Returns all processed articles from the database."""
     from pipeline.database import SessionLocal, Article
     db = SessionLocal()
@@ -329,9 +333,7 @@ def get_events():
     return result
 
 
-# ---------------------------------------------------------------------------
 # 4. ANALYTICS ENDPOINTS
-# ---------------------------------------------------------------------------
 @app.post("/analytics/knowledge-graph")
 def build_knowledge_graph():
     """Triggers knowledge graph generation and returns the file path."""
@@ -347,20 +349,20 @@ def build_knowledge_graph():
 
 @app.post("/analytics/topic-model")
 def run_topic_model():
-    """Triggers the BERTopic trend analysis and returns the top themes."""
+    """Triggers the BERTopic trend analysis using the preloaded AnalyticsEngine."""
     try:
-        from pipeline.analytics_engine import run_topic_modeling
+        analytics_engine = ml_models.get("analytics_engine")
+        if analytics_engine is None:
+            raise HTTPException(status_code=503, detail="Analytics engine not yet initialized.")
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         json_path = os.path.join(base_dir, "latest_articles.json")
-        run_topic_modeling(json_path)
+        analytics_engine.run(json_path)
         return {"status": "success", "output": "theme_dashboard.html"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ---------------------------------------------------------------------------
 # 5. SECURE RAG CHATBOT ENDPOINT (Graph-Augmented Hybrid Search + Guardrails)
-# ---------------------------------------------------------------------------
 @app.post("/rag/chat")
 @limiter.limit("10/minute")
 def rag_chat(req: ChatRequest, request: Request):
@@ -378,7 +380,7 @@ def rag_chat(req: ChatRequest, request: Request):
 
     # --- SECURITY LAYER 1: Prompt Injection Guardrail ---
     if security.check_prompt_injection(req.question):
-        print("🚨 Prompt Injection Detected! Rejecting query.")
+        print(" prompt injection detected! rejecting query.")
         raise HTTPException(status_code=403, detail="Security violation: Malicious prompt pattern detected.")
 
     # Dense embedding with BGE instruct prefix
@@ -456,9 +458,9 @@ ANALYST QUESTION: {req.question}"""
 
     # --- SECURITY LAYER 3: Output Grounding Check ---
     if not security.check_grounding(answer, full_context):
-        print("🚨 Hallucination Detected! Rejecting response.")
+        print("hallucination detected! rejecting response.")
         return {
-            "answer": "⚠️ SECURITY ALERT: The generated intelligence report failed the confidence/grounding check. Returning no response to prevent hallucination.",
+            "answer": "SECURITY ALERT: The generated intelligence report failed the confidence/grounding check. Returning no response to prevent hallucination.",
             "sources": sources,
             "context": full_context
         }
@@ -466,16 +468,14 @@ ANALYST QUESTION: {req.question}"""
     return {"answer": answer, "sources": sources, "context": full_context}
 
 
-# ---------------------------------------------------------------------------
 # 5b. RAG EVALUATION ENDPOINT
-# ---------------------------------------------------------------------------
 @app.post("/rag/evaluate")
 def rag_evaluate(req: EvalRequest):
     """Evaluates a RAG response for context relevance, faithfulness, and answer relevance."""
     try:
         from RAG.evaluator import RAGEvaluator
         
-        # Load the evaluator WITHOUT initializing duplicate instances of SentenceTransformer or Qdrant
+        # Load the evaluator without initializing duplicate instances of SentenceTransformer or Qdrant
         evaluator = RAGEvaluator(load_models=False)
         
         scores = evaluator.evaluate_triad(
@@ -489,9 +489,7 @@ def rag_evaluate(req: EvalRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ---------------------------------------------------------------------------
 # 5c. RAG INGESTION ENDPOINT
-# ---------------------------------------------------------------------------
 @app.post("/rag/ingest")
 def rag_ingest():
     """Triggers the Graph-Augmented Hybrid RAG ingestion from PostgreSQL to Qdrant Cloud."""
@@ -503,9 +501,7 @@ def rag_ingest():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ---------------------------------------------------------------------------
 # 6. PROCESSED DATA ENDPOINT (for dashboard pre-loaded view)
-# ---------------------------------------------------------------------------
 @app.get("/data/processed")
 def get_processed_data():
     """Returns the processed_test_results.json for UI rendering when DB is unavailable."""

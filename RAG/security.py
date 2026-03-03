@@ -7,6 +7,7 @@ from presidio_anonymizer import AnonymizerEngine
 
 
 class SecurityManager:
+    # handeling the edge case
     """
     Production-hardened security layer for RAG systems.
     Backward compatible with existing method signatures.
@@ -18,9 +19,7 @@ class SecurityManager:
     def __init__(self, max_query_length: int = DEFAULT_MAX_QUERY_LENGTH):
         self.max_query_length = max_query_length
 
-        # -----------------------------
-        # 1. Prompt Injection Patterns
-        # -----------------------------
+        # check prompt injection patterns
         self.injection_patterns: List[str] = [
             r"ignore\s+(all\s+)?(previous\s+)?instructions",
             r"system\s+prompt",
@@ -39,9 +38,7 @@ class SecurityManager:
             for pattern in self.injection_patterns
         ]
 
-        # -----------------------------
-        # 2. Secret / Token Patterns
-        # -----------------------------
+        # secrets and tokens
         self.secret_patterns = [
             r"sk-[a-zA-Z0-9]{20,}",  # OpenAI-style keys
             r"AKIA[0-9A-Z]{16}",     # AWS Access Key
@@ -52,15 +49,12 @@ class SecurityManager:
             re.compile(p) for p in self.secret_patterns
         ]
 
-        # -----------------------------
-        # 3. PII Engine
-        # -----------------------------
+        # pii engine
         self.analyzer = AnalyzerEngine()
         self.anonymizer = AnonymizerEngine()
 
-    # ==========================================================
-    # Utilities
-    # ==========================================================
+    # utils
+
 
     def _normalize_text(self, text: str) -> str:
         """

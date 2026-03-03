@@ -6,7 +6,7 @@ from datetime import datetime
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/maritime_news")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -14,6 +14,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 class Article(Base):
+    # initialzie the component
     __tablename__ = "articles"
 
     id = Column(String, primary_key=True, index=True) # Article Hash 
@@ -67,6 +68,6 @@ class MaritimeEvent(Base):
 
 def init_db():
     """Creates the tables if they do not exist."""
-    print("Initializing Database Schemas...")
+    print("init database schemas...")
     Base.metadata.create_all(bind=engine)
-    print("✅ Database Scaffolding Complete!")
+    print(" database scaffolding complete!")

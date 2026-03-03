@@ -161,7 +161,7 @@ if __name__ == "__main__":
             
             page_articles = result["data"]["latestArticles"]
             if not page_articles:
-                print("No more articles found.")
+                print("no more articles found.")
                 break
             
             # Enrich with Source URL
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         # Save all 100 articles to JSON
         with open("latest_articles.json", "w", encoding="utf-8") as f:
             json.dump(total_articles, f, indent=4, ensure_ascii=False)
-        print("\nAll articles saved to latest_articles.json")
+        print("\nall articles saved to latest_articles.json")
 
     except Exception as e:
         print("Error:", e)

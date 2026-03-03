@@ -8,7 +8,7 @@ class LLMExtractor:
     def __init__(self):
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
-            print("Warning: GROQ_API_KEY environment variable not set. LLM extraction will fail.")
+            print("warning: groq_api_key environment variable not set. llm extraction will fail.")
         
         # Patch the Groq client with Instructor to easily enforce Pydantic structured outputs
         self.client = instructor.from_groq(Groq(api_key=api_key), mode=instructor.Mode.JSON)
@@ -64,8 +64,8 @@ class LLMExtractor:
             
         except Exception as e:
             if "429" in str(e):
-                print(f"⚠️ Groq Rate Limit Hit. Waiting and retrying...")
+                print(f" Groq Rate Limit Hit. Waiting and retrying...")
                 raise e # Throw it back up for tenacity to catch and sleep
             else:
-                print(f"❌ Error during LLM extraction: {e}")
+                print(f" Error during LLM extraction: {e}")
                 return None

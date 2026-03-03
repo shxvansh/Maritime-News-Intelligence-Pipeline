@@ -7,13 +7,13 @@ import networkx as nx
 import os
 
 def build_knowledge_graph(json_filepath):
-    print("Building Knowledge Graph...")
+    print("building knowledge graph...")
     # Create an empty graph canvas
     G = nx.Graph()
     
     if not os.path.exists(json_filepath):
         print(f"Error: Could not find {json_filepath}.")
-        print("Make sure you run the pipeline first to generate the structured data.")
+        print("make sure you run the pipeline first to generate the structured data.")
         return
         
     with open(json_filepath, 'r', encoding='utf-8') as f:
@@ -78,11 +78,11 @@ def build_knowledge_graph(json_filepath):
                         G.add_edge(org, incident, relation="INVOLVED_IN")
 
     # --- TERMINAL OUTPUT ---
-    print("✅ Graph created successfully!")
+    print(" graph created succesfully!")
     print(f"Total Unique Nodes (Entities): {G.number_of_nodes()}")
     print(f"Total Edges (Relationships): {G.number_of_edges()}")
     
-    print("\n--- 10 Connected Graph Examples ---")
+    print("\n--- 10 connected graph examples ---")
     edge_list = list(G.edges(data=True))
     for i, (node_a, node_b, edge_data) in enumerate(edge_list[:10]):
         # Extract the node types so we can print clearly

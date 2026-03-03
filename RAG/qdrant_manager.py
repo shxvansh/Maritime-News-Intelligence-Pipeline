@@ -28,12 +28,12 @@ class QdrantManager:
 
         if not qdrant_url or not qdrant_api_key:
             raise EnvironmentError(
-                "❌ QDRANT_URL and QDRANT_API_KEY must be set in your .env file. "
+                " QDRANT_URL and QDRANT_API_KEY must be set in your .env file. "
                 "Local storage is not supported in production. "
                 "Sign up at https://cloud.qdrant.io to get your credentials."
             )
 
-        print(f"🔗 Connecting to Qdrant Cloud at {qdrant_url}...")
+        print(f" Connecting to Qdrant Cloud at {qdrant_url}...")
         self.client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
         self.collection_name = collection_name
         self._ensure_collection_exists()
@@ -45,7 +45,7 @@ class QdrantManager:
             collection_names = [col.name for col in collections_response.collections]
 
             if self.collection_name not in collection_names:
-                print(f"🛠️ Creating Qdrant collection: '{self.collection_name}'")
+                print(f" Creating Qdrant collection: '{self.collection_name}'")
                 print(f"   Dense Vector: {self.DENSE_VECTOR_SIZE}-D (Cosine)")
                 print(f"   Sparse Vector: BM25 Keyword Index")
 
@@ -61,11 +61,11 @@ class QdrantManager:
                         self.SPARSE_VECTOR_NAME: SparseVectorParams()
                     },
                 )
-                print(f"✅ Collection '{self.collection_name}' created successfully.")
+                print(f" Collection '{self.collection_name}' created successfully.")
             else:
-                print(f"✅ Collection '{self.collection_name}' already exists.")
+                print(f" Collection '{self.collection_name}' already exists.")
         except Exception as e:
-            print(f"⚠️ Error checking/creating collection: {e}")
+            print(f" Error checking/creating collection: {e}")
             raise
 
     def insert_chunks(self, points):
@@ -77,7 +77,7 @@ class QdrantManager:
             collection_name=self.collection_name,
             points=points
         )
-        print(f"💾 Inserted {len(points)} vector chunks into Qdrant Cloud.")
+        print(f" Inserted {len(points)} vector chunks into Qdrant Cloud.")
 
     def hybrid_search(self, dense_vector, sparse_vector, limit=5):
         """
