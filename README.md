@@ -1,118 +1,142 @@
-# Maritime News Intelligence Command Center
+# Maritime News Intelligence Pipeline
 
-## 1. Problem Statement & Business Context
-Maritime intelligence requires continuous, zero-latency situational awareness of vessel incidents, port disruptions, and geopolitical developments. This project implements an automated, end-to-end intelligence pipeline that ingests unstructured news articles, cleanses the data, utilizes a hybrid Classical NLP + LLM architecture to extract structured intelligence, and surfaces it through a real-time, highly secure, full-stack Dashboard.
 
-## 2. Advanced Architecture Overview
-The system is built to production-grade standards, prioritizing extreme inference speeds, explicit hallucination control, and deterministic retrieval. 
 
-### System Architecture Diagram
-```mermaid
-graph TD
-    A[GraphQL Scraper] -->|Raw JSON| B(NLP Pipeline: spaCy + GLiNER)
-    B -->|Entity Extraction| C{Meta LLaMA-4 via Groq}
-    
-    C -->|Structured JSONB| D[(PostgreSQL)]
-    C -->|Event Graph Nodes| E[NetworkX]
-    
-    D --> F[FastAPI Backend - 0-latency Preloads]
-    F --> G[Graph-Augmented Hybrid RAG]
-    
-    G -->|Dense BGE-Large + Sparse BM25 + RRF| H[(Qdrant Cloud)]
-    
-    I[Streamlit Analyst UI] --> J{Defense-Grade Security Layer}
-    J -->|Prompt Injection Guard| F
-    J -->|Presidio PII Masking| F
-    F -->|Grounding / Hallucination Radar| I
-    F -->|Live LLM-as-a-Judge Evaluation| I
-```
+An automated, intelligence pipeline that performs controlled web scraping of maritime news, NLP-driven entity extraction, LLM-assisted semantic enrichment, and Graph-Augmented Hybrid RAG. 
 
-### Tech Stack Highlights
-| Layer | Technologies Used | Key Production Feature |
-| --- | --- | --- |
-| **Backend API** | `FastAPI`, `uvicorn` | Implements `lifespan` architecture to preload massive embedding models into RAM, ensuring 0-latency cold-starts for the RAG engine. |
-| **Web Frontend** | `Streamlit`, Requests | Real-time interactive UI with asynchronous metric loading to separate LLM generation from evaluation processing. |
-| **LLM Inference** | `Groq`, `LLaMA-4-17B-instruct` | Utilizes Groq LPUs for blindingly fast generation speeds (800+ tokens/sec) and near-zero cost. |
-| **Vector Database** | `Qdrant Cloud` | Implements **Reciprocal Rank Fusion (RRF)** to flawlessly merge Semantic Dense Search with deterministic BM25 Keyword Search. |
-| **Security/Gov-Tech**| `Microsoft Presidio` | Instantly masks PII/Gov data in chunks *before* they are sent to the LLM to prevent data bleed. |
-| **MLOps Evaluation**| Python Regex, Async loops | Native, dependency-free implementation of the RAG Triad (Context, Faithfulness, Relevance) executing live alongside generation. |
+**Target Source:** MarineTraffic News API  
+**Output:** Structured JSON intelligence, Knowledge Graphs, Theme Analytics, and an Analyst Dashboard
 
 ---
 
-## 3. Core Features & Capabilities
+##  1. Architecture Overview
 
-### A. Graph-Augmented Hybrid RAG
-Standard RAG loses entity relationships. Our ingestion engine (`ingester.py`) queries the PostgreSQL database, extracts the complex `MaritimeEvents` related to the text, and dynamically injects Knowledge Graph tags (e.g., `[Incident: Vessel Sanctions] [Vessel: MV BERTHA]`) directly into the embedding chunk. We then embed this using both `BAAI/bge-large` (Dense) and deterministic MD5-hashing (Sparse) for perfect keyword recall.
+This project implements a five-layer synchronous batch processing architecture. It utilizes a combination of classical NLP (spaCy + GLiNER) and high-speed LLM inference (meta-llama/llama-4-scout-17b-16e-instruct via Groq LPUs) to transform unstructured narrative reporting into structured, queryable data.
 
-### B. The Triple-Layer Assurance Engine (`security.py`)
-This project implements production-grade guardrails for safety and factual adherence:
-1. **Pre-Flight Filter:** Rejects systemic prompt-injection attempts via heuristic scanning.
-2. **Context Masking:** Uses `presidio-analyzer` and `presidio-anonymizer` to detect and scrub PII from Qdrant context chunks before transmission to the Groq LLM.
-3. **Post-Flight Grounding Check:** A mathematical overlap analysis that rejects the LLM's final generated answer if it detects entities or facts that do not exist in the retrieved context, preventing hallucinations.
+> **Full Design Justifications:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a comprehensive breakdown of our design choices (Scraping Approach, NER Selection, Classification Tradeoffs, Storage Schema, and Graph-Augmented RAG strategy).
 
-### C. Live Telemetry & "LLM-as-a-Judge" (`evaluator.py`)
-No bloat from LangChain or Ragas. A custom backend pipeline automatically spins up a background thread when an analyst asks a question. It intercepts the retrieved context and the generated answer, asks LLaMA-4 to adopt the persona of a strict, impartial judge, and paints an interactive dashboard showing real-time scores for:
-*   **Context Relevance** (Did Qdrant fetch the right chunks?)
-*   **Faithfulness** (Did the LLM fabricate any details?)
-*   **Answer Relevance** (Did the system directly address the analyst?)
+> **Performance & Metrics:** See [`docs/EVALUATION.md`](docs/EVALUATION.md) for pipeline latency, cost estimates, precision/recall analysis, and manual annotation samples. 
+
+### Core Pipeline Flow (`pipeline/main.py`)
+1. **Scraping Layer:** Natively paginates MarineTraffic's GraphQL API (bypassing HTML fragility and respecting anti-bot constraints).
+2. **Preprocessing Layer:** Markdown sanitization, stopword removal, and deduplication hashing.
+3. **NLP Layer:** Zero-shot incident classification (`facebook/bart-large-mnli`) and domain-specific Named Entity Recognition (`GLiNER`).
+4. **LLM Extraction Layer:** Instructor-patched Groq client enforcing strict Pydantic JSON schemas to extract events, resolve coreferences, and generate semantic enrichments (Risk Levels, Geopolitical Flags).
+5. **Storage Layer:** Writes structured `Article` and `MaritimeEvent` records to a Dockerized PostgreSQL instance.
 
 ---
 
-## 4. Setup Instructions & Execution
+##  2. System Capabilities & Features
+
+### A. Graph-Augmented Hybrid RAG (`RAG/rag_chatbot.py`)
+Standard RAG loses entity relationships. Our ingestion engine (`RAG/ingester.py`) queries PostgreSQL, extracts the complex `MaritimeEvents` related to the text, and dynamically injects Knowledge Graph tags (e.g., `[Incident: Vessel Sanctions] [Vessel: MV BERTHA]`) directly into the embedding chunk. 
+We then utilize **Qdrant Cloud** to perform **Reciprocal Rank Fusion (RRF)** on:
+- **Dense Vectors:** 1024-D semantic embeddings via `BAAI/bge-large-en-v1.5`
+- **Sparse Vectors:** Deterministic MD5-hashed BM25 token frequencies for exact keyword matches.
+
+### B. Security Layer (`RAG/security.py`)
+1. **Pre-Flight Guardrail:** Checks for 9 variants of prompt injection and secret leaking attempts.
+2. **Presidio PII Clean-Room:** Scrubs retrieved context of identifiable data (Emails, Phone numbers) before transmitting to the external LLM.
+3. **Grounding Guard (Hallucination Control):** An overlap analysis engine that rejects the final output if the LLM hallucinates entities not found in the original context.
+
+### C. Advanced Analytics & Generation Evaluation (`pipeline/analytics_engine.py` & `RAG/evaluator.py`)
+- **Knowledge Graph:** Maps Vessel → Incident → Port relationships using `NetworkX` and exports them to interactive `PyVis` HTML components.
+- **Topical Clustering:** Uses `BERTopic` (UMAP + HDBSCAN) to discover emerging macro-themes dynamically across the corpus.
+- **RAG Evaluation (LLM-as-a-Judge):** Employs an automated evaluation triad scoring the pipeline on Context Relevance (100%), Faithfulness (95%), and Answer Relevance (95%). See [`RAG/evaluation_report.md`](RAG/evaluation_report.md) for full benchmark details.
+
+---
+
+##  3. Setup Instructions & Execution
 
 ### Prerequisites
-*   Docker & Docker Compose (for DB isolation)
-*   Groq API Key
-*   Qdrant Cloud URL & API Key (for Hybrid RRF)
+- **Docker & Docker Compose** (Required for isolated PostgreSQL)
+- **Python 3.11+**
+- **Groq API Key** (Required for LLM Extraction)
+- **Qdrant Cloud URL & Key** (Required for Hybrid Search)
 
-### Installation
+### Quick Start Installation
 
-1. Clone the repository & set up the environment:
+1. **Clone the repository:**
 ```bash
-git clone https://github.com/yourusername/maritime-intelligence-pipeline.git
-cd maritime-intelligence-pipeline
-pip install -r requirements.txt
+git clone https://github.com/shxvansh/maritime-news-intelligence-pipeline.git
+cd maritime-news-intelligence-pipeline
 ```
 
-2. Configure the `.env` file:
-```env
-# Database Credentials
-POSTGRES_USER=admin
-POSTGRES_PASSWORD=secret
-POSTGRES_DB=maritime_intel
-
-# External APIs
-GROQ_API_KEY=gsk_your_key_here
-QDRANT_URL=https://your-cluster-url.cloud.qdrant.io
-QDRANT_API_KEY=your_qdrant_key
-```
-
-### Execution (Fullstack)
-
-1. **Spin up the Database Environment:**
+2. **Set up your environment variables:**
+Rename the provided example file:
 ```bash
-docker-compose up -d --build
+cp .env.example .env
 ```
+*Edit `.env` and insert your `GROQ_API_KEY` and `QDRANT` credentials.*
 
-2. **Run the Core Pre-computation Pipeline:**
+3. **Run the Entire Stack with Docker:**
+*Our `docker-compose.yml` orchestrates the PostgreSQL database, the core data pipeline, the FastAPI backend, and the Next.js frontend all at once. It mounts a persistent volume for the database and caches HuggingFace models to avoid re-downloads.*
 ```bash
-# Scrapes MarineTraffic, Extracts Entities, Generates Graphs/Topics
-python pipeline/main.py
-
-# Ingests PostgreSQL data into Qdrant Cloud via Hybrid Search
-python RAG/ingester.py
+docker compose up --build
 ```
 
-3. **Start the Maritime Command Framework (Two Terminal Windows Required):**
+Wait until you see the `maritime_api` service successfully preload models and the `maritime_frontend` service successfully compile.
 
-*Terminal 1 (The zero-latency Backend Engine):*
-```bash
-uvicorn api.main:app --port 8000
+### Accessing the System
+
+- **Analyst Dashboard (Next.js):**
+  Navigate to `http://localhost:3000` to access the main intelligence feed and analytics.
+
+- **Backend API (FastAPI):**
+  The API runs at `http://localhost:8000`. You can view the automated Swagger/OpenAPI docs at `http://localhost:8000/docs`.
+
+From the Dashboard, you can:
+- Trigger new Scraping/Extraction runs
+- Ingest data into the Qdrant Cloud Vector DB
+- View the enriched Intelligence Feed (with Executive Summaries & Risk Flags)
+- Interrogate the RAG Chatbot
+- Generate the Knowledge Graph & Topic Modeling Dashboards
+
+---
+
+##  4. Project Structure & Deliverables
+
+```text
+├── api/
+│   └── main.py                 # FastAPI backend (Lifespan model loading)
+├── RAG/
+│   ├── ingester.py             # Prepares Graph-Augmented chunks for Qdrant
+│   ├── qdrant_manager.py       # Hybrid Search interface
+│   ├── rag_chatbot.py          # Dual search (Dense + Sparse) + LLM generation
+│   ├── security.py             # Presidio limits + Hallucination checks
+│   ├── evaluator.py            # Live LLM-as-a-judge (Context, Faithfulness, AR)
+├── pipeline/
+│   ├── main.py                 # The Synchronous Batch Pipeline Runner
+│   ├── preprocessor.py         # Markdown cleaner, hashing, sentence splitting
+│   ├── nlp_engine.py           # GLiNER NER & BART-large-mnli Zero-Shot
+│   ├── llm_extractor.py        # Groq Client + Prompt Strategy + Coreference
+│   ├── models.py               # Strict Pydantic JSON schemas
+│   ├── database.py             # SQLAlchemy ORM (Articles & MaritimeEvents)
+│   ├── graph_builder.py        # NetworkX entity relationship extraction
+│   └── analytics_engine.py     # BERTopic analysis
+├── docs/
+│   ├── ARCHITECTURE.md         # Detailed design choices & prompt strategy
+│   ├── EVALUATION.md           # Metrics, latency, cost & manual annotations
+│   └── sample_outputs.json     # 10 Extracted Sample Events
+├── frontend/                   # Next.js Analyst Dashboard Source
+├── docker-compose.yml          # Persistent database environment
+├── Dockerfile                  # Container instructions
+└── requirements.txt
 ```
 
-*Terminal 2 (The Intelligence Analyst Dashboard):*
-```bash
-streamlit run app.py
-```
+---
 
-Navigate to `http://localhost:8501` to access the Intelligence Dashboard!
+##  Model Selection Reasoning & Prompt Strategy
+
+*An excerpt. See `docs/ARCHITECTURE.md` for full documentation.*
+
+**Model Selection:**
+*   **NER:** `GLiNER (Medium-v2.1)`. Chosen over fine-tuned spaCy models because zero-shot capability allows us to define arbitrary, highly specific maritime taxonomy classes (e.g., `"Vessel Name"`, `"Port"`, `"Incident Type"`, `"Cargo"`) at inference time without requiring any manually annotated training datasets.
+*   **Classification:** `BART-large-mnli`. Chosen to operate locally as a zero-shot prior. It handles the speed and heavy lifting, providing a strong baseline classification hint (`"Collision"`, `"Sanctions"`) to the LLM.
+*   **LLM Extraction:** `meta-llama/llama-4-scout-17b-instruct` via Groq. Chosen for its extreme inference speeds (800+ tokens/sec) and near-zero cost, making it feasible to run intensive structuring prompts across hundreds of articles.
+
+**Prompt Strategy & Boundary Detection:**
+The prompt enforces **three core heuristics**:
+1. It injects a known list of vessel assets (from the MarineTraffic API metadata) into the context to enforce exact, normalized vessel naming.
+2. It explicitly commands the resolution of coreferences/anaphoric references ("the ship", "the chemical carrier") back to their proper named entities, preventing duplicate ghost entities.
+3. Event boundary detection is native: the prompt enforces multi-event JSON arrays via Pydantic mapping (`instructor`), allowing the LLM's vast context window to naturally separate different incidents mentioned within a single news report.
