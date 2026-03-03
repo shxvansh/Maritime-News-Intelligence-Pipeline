@@ -56,24 +56,22 @@ services:
       - HF_HOME=/cache/huggingface
     volumes:
       - huggingface_cache:/cache/huggingface
+      - ./latest_articles.json:/app/latest_articles.json
+      - ./processed_test_results.json:/app/processed_test_results.json
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
 
-  # The Streamlit Dashboard
-  dashboard:
-    build: .
-    container_name: maritime_dashboard
+  # The Next.js Frontend (replaces old Streamlit dashboard)
+  frontend:
+    build: ./frontend
+    container_name: maritime_frontend
     depends_on:
       api:
         condition: service_started
     ports:
-      - "8501:8501"
+      - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secret}@db:5432/${POSTGRES_DB:-maritime_intel}
-      - API_URL=http://api:8000
-      - HF_HOME=/cache/huggingface
-    volumes:
-      - huggingface_cache:/cache/huggingface
-    command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+
 
 volumes:
   postgres_data:
