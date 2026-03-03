@@ -18,27 +18,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # The Intelligence Pipeline Execution (Runs once)
-  pipeline:
-    build: .
-    container_name: maritime_pipeline
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - QDRANT_URL=${QDRANT_URL}
-      - QDRANT_API_KEY=${QDRANT_API_KEY}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secret}@db:5432/${POSTGRES_DB:-maritime_intel}
-      - HF_HOME=/cache/huggingface
-    volumes:
-      - ./latest_articles.json:/app/latest_articles.json
-      - ./processed_test_results.json:/app/processed_test_results.json
-      - huggingface_cache:/cache/huggingface
-    command: python pipeline/main.py
-
-  # The FastAPI Backend
+  # The FastAPI Backend (also handles pipeline execution via API endpoints)
   api:
     build: .
     container_name: maritime_api
@@ -56,8 +36,6 @@ services:
       - HF_HOME=/cache/huggingface
     volumes:
       - huggingface_cache:/cache/huggingface
-      - ./latest_articles.json:/app/latest_articles.json
-      - ./processed_test_results.json:/app/processed_test_results.json
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
 
   # The Next.js Frontend (replaces old Streamlit dashboard)

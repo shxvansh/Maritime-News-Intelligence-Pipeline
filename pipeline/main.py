@@ -29,8 +29,8 @@ def main():
     # Load raw data
     data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "latest_articles.json")
     
-    if not os.path.exists(data_path):
-        print(f" Could not find {data_path}. Please ensure the scraper has generated this file.")
+    if not os.path.isfile(data_path):
+        print(f" Could not find {data_path}. Please run the scraper first via the dashboard.")
         return
         
     with open(data_path, "r", encoding="utf-8") as f:
